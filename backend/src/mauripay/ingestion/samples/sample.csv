@@ -1,0 +1,4 @@
+transaction_id,timestamp,sender_id,receiver_id,amount,currency,transaction_type,channel,operator,sender_wilaya,receiver_wilaya,status,fees,is_ramadan,bill_provider,origin_country,is_anomaly,anomaly_type
+550e8400-e29b-41d4-a716-446655440001,2026-02-20T21:15:00+00:00,ACC_00001,ACC_00002,15000.00,MRU,TRANSFER,USSD,Bankily,Nouakchott-Ouest,Nouakchott-Nord,SUCCESS,150.00,true,,,false,NONE
+550e8400-e29b-41d4-a716-446655440002,2026-04-03T10:30:00+00:00,ACC_00003,ACC_00004,3200.00,MRU,BILL_PAY,APP,Sedad,Nouakchott-Sud,Dakhlet Nouadhibou,SUCCESS,0.00,false,SOMELEC,,false,NONE
+550e8400-e29b-41d4-a716-446655440003,2026-06-14T12:45:00+00:00,ACC_00005,ACC_00006,250000.00,MRU,TRANSFER,AGENT,Masrvi,Trarza,Tiris Zemmour,SUCCESS,2500.00,false,,,true,HIGH_AMOUNT
