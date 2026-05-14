@@ -281,8 +281,8 @@ def generate_tontine_group(accounts: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Prépare un groupe de tontine.
 
-    S3 : fonction de préparation.
-    S4 : peut être utilisée pour injecter des séquences de transactions groupées.
+    Cette fonction prépare les paramètres métier. La création des transactions
+    exportées est faite dans generator.generate_tontine_transactions().
     """
     if len(accounts) < 30:
         group_size = min(len(accounts), random.randint(10, 30))
