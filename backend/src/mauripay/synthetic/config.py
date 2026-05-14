@@ -23,8 +23,9 @@ ACCOUNT_ID_FORMAT = "ACC_{:05d}"
 
 
 # ─────────────────────────────────────────────
-# DEVISES
+# DEVISE M1
 # ─────────────────────────────────────────────
+
 
 CURRENCIES = ["MRU", "XOF", "USD"]
 
@@ -226,3 +227,6 @@ DIASPORA_CASH_IN_RATE = 0.20
 # ─────────────────────────────────────────────
 
 DEFAULT_ANOMALY_RATE = 0.02
+
+# Tontines El Lewha : comportement culturel normal, pas une anomalie.
+DEFAULT_TONTINE_RATE = 0.001

@@ -211,6 +211,14 @@ def compute_channel_stats(df: pd.DataFrame) -> pd.Series:
     return percent_series(df["channel"])
 
 
+def compute_currency_stats(df: pd.DataFrame) -> pd.Series:
+    """
+    Calcule la repartition des devises.
+    """
+
+    return percent_series(df["currency"])
+
+
 def compute_wilaya_stats(df: pd.DataFrame) -> pd.Series:
     """
     Calcule la répartition par wilaya source.
@@ -256,6 +264,67 @@ def compute_transaction_type_stats(df: pd.DataFrame) -> pd.Series:
     """
 
     return count_series(df["transaction_type"])
+
+
+def compute_tontine_stats(df: pd.DataFrame) -> dict[str, Any]:
+    """
+    Detecte les groupes qui ressemblent a une tontine normale.
+
+    Une tontine n'a pas de colonne dediee en M1. On la repere donc par
+    signature :
+    - TRANSFER normal ;
+    - anomaly_type = NONE ;
+    - meme receiver_id ;
+    - meme amount ;
+    - au moins 10 senders differents dans une fenetre de 2 heures.
+    """
+
+    if df.empty:
+        return {"candidate_group_count": 0, "candidate_transaction_count": 0}
+
+    working_df = df.copy()
+    working_df["timestamp"] = pd.to_datetime(
+        working_df["timestamp"],
+        utc=True,
+        errors="coerce",
+    )
+
+    normal_mask = (
+        (working_df["transaction_type"] == "TRANSFER")
+        & (working_df["anomaly_type"] == "NONE")
+        & (working_df["is_anomaly"].astype(str).str.lower().isin(["false", "0"]))
+    )
+
+    working_df = working_df[normal_mask].dropna(subset=["timestamp"])
+
+    candidate_group_count = 0
+    candidate_transaction_count = 0
+
+    for _, group in working_df.groupby(["receiver_id", "amount"], dropna=False):
+        group = group.sort_values("timestamp").reset_index(drop=True)
+        start_index = 0
+
+        while start_index < len(group):
+            window_start = group.loc[start_index, "timestamp"]
+            window_end = window_start + pd.Timedelta(hours=2)
+            window = group[
+                (group["timestamp"] >= window_start)
+                & (group["timestamp"] <= window_end)
+            ]
+
+            unique_senders = window["sender_id"].nunique()
+
+            if unique_senders >= 10:
+                candidate_group_count += 1
+                candidate_transaction_count += len(window)
+                start_index += len(window)
+            else:
+                start_index += 1
+
+    return {
+        "candidate_group_count": candidate_group_count,
+        "candidate_transaction_count": candidate_transaction_count,
+    }
 
 
 def compute_anomaly_stats(df: pd.DataFrame) -> dict[str, Any]:
@@ -484,6 +553,10 @@ def print_validation_report(df: pd.DataFrame, input_path: str | Path) -> None:
     channel_stats = compute_channel_stats(df)
     print_series("Répartition des canaux (%)", channel_stats)
 
+    # Devises
+    currency_stats = compute_currency_stats(df)
+    print_series("Repartition des devises (%)", currency_stats)
+
     # Géographie
     geo_summary = compute_geographic_summary(df)
 
@@ -499,6 +572,14 @@ def print_validation_report(df: pd.DataFrame, input_path: str | Path) -> None:
     # Types de transaction
     tx_type_stats = compute_transaction_type_stats(df)
     print_series("Nombre par transaction_type", tx_type_stats)
+
+    # Tontines normales probables
+    tontine_stats = compute_tontine_stats(df)
+
+    print("\nTontines normales probables")
+    print("---------------------------")
+    print(f"- Groupes detectes: {tontine_stats['candidate_group_count']}")
+    print(f"- Transactions concernees: {tontine_stats['candidate_transaction_count']}")
 
     # Anomalies
     anomaly_stats = compute_anomaly_stats(df)
