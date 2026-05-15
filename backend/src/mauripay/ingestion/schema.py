@@ -42,6 +42,10 @@ class Operator(str, Enum):
     GAZAPAY = "GazaPay"
     BARIDCASH = "BaridCash"
     BCIPAY = "BCIpay"
+    ATTIJARI_MOBILE = "Attijari Mobile"
+    AMANTY = "Amanty"
+    MOOV_MONEY = "Moov Money"
+    RASSIDY = "Rassidy رصيدي"
 
 
 class Wilaya(str, Enum):
