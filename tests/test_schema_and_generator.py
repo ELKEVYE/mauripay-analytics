@@ -14,7 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_SRC = PROJECT_ROOT / "backend" / "src"
 sys.path.insert(0, str(BACKEND_SRC))
 
-from mauripay.ingestion.schema import Transaction  # noqa: E402
+from mauripay.ingestion.schema import Operator, Transaction  # noqa: E402
+from mauripay.synthetic.config import OPERATORS, OPERATOR_WEIGHTS  # noqa: E402
 from mauripay.synthetic.generator import (  # noqa: E402
     create_accounts,
     generate_tontine_transactions,
@@ -68,6 +69,21 @@ class SchemaValidationTests(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             Transaction(**payload)
+
+    def test_configured_operators_are_accepted_by_schema(self):
+        enum_values = {operator.value for operator in Operator}
+
+        self.assertEqual(set(OPERATORS), enum_values)
+        self.assertEqual(set(OPERATOR_WEIGHTS), enum_values)
+        self.assertAlmostEqual(sum(OPERATOR_WEIGHTS.values()), 1.0)
+
+        for operator in OPERATORS:
+            payload = valid_payload()
+            payload["operator"] = operator
+
+            transaction = Transaction(**payload)
+
+            self.assertEqual(transaction.operator, operator)
 
 
 class GeneratorTests(unittest.TestCase):

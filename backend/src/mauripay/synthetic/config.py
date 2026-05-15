@@ -51,18 +51,26 @@ OPERATORS = [
     "GazaPay",
     "BaridCash",
     "BCIpay",
+    "Attijari Mobile",
+    "Amanty",
+    "Moov Money",
+    "Rassidy رصيدي",
 ]
 
 OPERATOR_WEIGHTS = {
-    "Bankily": 0.30,
-    "Masrvi": 0.18,
-    "Sedad": 0.15,
-    "Click": 0.10,
-    "bimbank Mobile": 0.08,
-    "Bamis Digital": 0.06,
-    "GazaPay": 0.05,
-    "BaridCash": 0.04,
-    "BCIpay": 0.04,
+    "Bankily": 0.24,
+    "Masrvi": 0.15,
+    "Sedad": 0.12,
+    "Click": 0.08,
+    "bimbank Mobile": 0.07,
+    "Bamis Digital": 0.05,
+    "GazaPay": 0.04,
+    "BaridCash": 0.03,
+    "BCIpay": 0.03,
+    "Attijari Mobile": 0.06,
+    "Amanty": 0.05,
+    "Moov Money": 0.05,
+    "Rassidy رصيدي": 0.03,
 }
 
 
