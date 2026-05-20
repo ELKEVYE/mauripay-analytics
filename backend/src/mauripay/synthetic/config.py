@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime, timezone
 
 # ─────────────────────────────────────────────
 # PARAMÈTRES GÉNÉRAUX
@@ -14,9 +14,9 @@ DEFAULT_RANDOM_SEED = 42
 DEFAULT_NUM_ACCOUNTS = 5_000
 
 DEFAULT_START_DATE = "2026-01-01"
-DEFAULT_END_DATE = "2026-12-31"
+DEFAULT_END_DATE = datetime.now(timezone.utc).date().isoformat()
 
-MAX_AMOUNT = Decimal("500000.00")
+MAX_AMOUNT = Decimal("10000000.00")
 
 # Compatible avec schema.py : pattern ACC_\d{5}
 ACCOUNT_ID_FORMAT = "ACC_{:05d}"
@@ -203,13 +203,14 @@ AMOUNT_RANGES = {
 # FACTURES
 # ─────────────────────────────────────────────
 
-BILL_PROVIDERS = ["SOMELEC", "SNDE", "MAURITEL", "CHINGUITEL"]
+BILL_PROVIDERS = ["SOMELEC", "SNDE", "MAURITEL", "CHINGUITEL", "MATTEL"]
 
 BILL_PROVIDER_WEIGHTS = {
-    "SOMELEC": 0.45,
-    "SNDE": 0.30,
-    "MAURITEL": 0.15,
-    "CHINGUITEL": 0.10,
+    "SOMELEC": 0.42,
+    "SNDE": 0.28,
+    "MAURITEL": 0.14,
+    "CHINGUITEL": 0.08,
+    "MATTEL": 0.08,
 }
 
 

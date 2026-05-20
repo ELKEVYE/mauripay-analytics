@@ -231,7 +231,7 @@ def choose_bill_amount(provider: str) -> Decimal:
     if provider == "SNDE":
         return random_decimal_between(Decimal("400.00"), Decimal("2000.00"))
 
-    if provider in {"MAURITEL", "CHINGUITEL"}:
+    if provider in {"MAURITEL", "CHINGUITEL", "MATTEL"}:
         return random_decimal_between(Decimal("200.00"), Decimal("3000.00"))
 
     return random_decimal_between(Decimal("400.00"), Decimal("8000.00"))

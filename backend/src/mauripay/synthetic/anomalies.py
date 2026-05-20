@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import random
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 
-MAX_AMOUNT = Decimal("500000.00")
+MAX_AMOUNT = Decimal("10000000.00")
 
 
 def money(value: Decimal) -> Decimal:
@@ -37,7 +37,7 @@ def inject_high_amount(transaction_data: dict[str, Any]) -> dict[str, Any]:
     Principe :
     - on prend un montant normal ;
     - on le multiplie par 10 à 30 ;
-    - on limite le résultat à 500000 MRU pour rester compatible avec schema.py ;
+    - on limite le résultat à 10000000 MRU pour rester compatible avec schema.py ;
     - on marque la transaction comme anomalie.
 
     Exemple :
@@ -131,6 +131,7 @@ def inject_unusual_location(
 def create_structuring_sequence(
     base_transaction_data: dict[str, Any],
     count: int | None = None,
+    max_timestamp: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """
     Crée une séquence STRUCTURING.
@@ -168,6 +169,8 @@ def create_structuring_sequence(
 
         # Transactions espacées de quelques minutes.
         tx["timestamp"] = timestamp + timedelta(minutes=random.randint(2, 15) * index)
+        if max_timestamp is not None and tx["timestamp"] > max_timestamp:
+            tx["timestamp"] = max_timestamp
 
         # Montants similaires mais pas toujours identiques.
         variation = Decimal(str(random.uniform(0.95, 1.05)))
@@ -191,6 +194,7 @@ def create_structuring_sequence(
 def create_high_frequency_sequence(
     base_transaction_data: dict[str, Any],
     count: int | None = None,
+    max_timestamp: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """
     Crée une séquence HIGH_FREQUENCY.
@@ -214,6 +218,8 @@ def create_high_frequency_sequence(
         tx = deepcopy(base_tx)
 
         tx["timestamp"] = timestamp + timedelta(seconds=random.randint(20, 120) * index)
+        if max_timestamp is not None and tx["timestamp"] > max_timestamp:
+            tx["timestamp"] = max_timestamp
         tx["amount"] = money(Decimal(str(random.uniform(100, 5000))))
         tx["fees"] = money(tx["amount"] * Decimal("0.01"))
 
