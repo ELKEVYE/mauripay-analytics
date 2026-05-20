@@ -321,7 +321,7 @@ def generate_structuring_transactions(
         end=end,
     )
 
-    sequence_data = create_structuring_sequence(base_data)
+    sequence_data = create_structuring_sequence(base_data, max_timestamp=end)
 
     return [
         validate_transaction(transaction_data)
@@ -355,7 +355,7 @@ def generate_high_frequency_transactions(
         end=end,
     )
 
-    sequence_data = create_high_frequency_sequence(base_data)
+    sequence_data = create_high_frequency_sequence(base_data, max_timestamp=end)
 
     return [
         validate_transaction(transaction_data)
@@ -502,6 +502,10 @@ def generate_transactions(
 
     start = parse_utc_datetime(start_date, end_of_day=False)
     end = parse_utc_datetime(end_date, end_of_day=True)
+    now = datetime.now(timezone.utc)
+
+    if end > now:
+        end = now
 
     if start >= end:
         raise ValueError("start_date doit être avant end_date")

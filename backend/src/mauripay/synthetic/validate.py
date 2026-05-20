@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -153,12 +154,16 @@ def validate_pydantic_rows(
 
     errors: list[dict[str, Any]] = []
     valid_count = 0
+    columns = [column for column in REQUIRED_COLUMNS if column in df.columns]
 
-    for index, row in df.iterrows():
-        payload = row_to_transaction_payload(row)
+    for index, values in zip(df.index, df[columns].itertuples(index=False, name=None)):
+        payload = {
+            column: normalize_value_for_pydantic(value)
+            for column, value in zip(columns, values)
+        }
 
         try:
-            Transaction(**payload)
+            Transaction.model_validate(payload)
             valid_count += 1
         except ValidationError as exc:
             if len(errors) < max_errors:
@@ -295,30 +300,43 @@ def compute_tontine_stats(df: pd.DataFrame) -> dict[str, Any]:
         & (working_df["is_anomaly"].astype(str).str.lower().isin(["false", "0"]))
     )
 
-    working_df = working_df[normal_mask].dropna(subset=["timestamp"])
+    working_df = (
+        working_df.loc[normal_mask, ["receiver_id", "amount", "timestamp", "sender_id"]]
+        .dropna(subset=["timestamp"])
+        .sort_values(["receiver_id", "amount", "timestamp"])
+    )
 
     candidate_group_count = 0
     candidate_transaction_count = 0
 
-    for _, group in working_df.groupby(["receiver_id", "amount"], dropna=False):
-        group = group.sort_values("timestamp").reset_index(drop=True)
+    for _, group in working_df.groupby(["receiver_id", "amount"], sort=False, dropna=False):
+        if len(group) < 10:
+            continue
+
+        timestamps = group["timestamp"].tolist()
+        sender_ids = group["sender_id"].tolist()
+        sender_counts: dict[str, int] = defaultdict(int)
         start_index = 0
+        end_index = 0
+        group_size = len(group)
 
-        while start_index < len(group):
-            window_start = group.loc[start_index, "timestamp"]
-            window_end = window_start + pd.Timedelta(hours=2)
-            window = group[
-                (group["timestamp"] >= window_start)
-                & (group["timestamp"] <= window_end)
-            ]
+        while start_index < group_size:
+            window_end = timestamps[start_index] + pd.Timedelta(hours=2)
 
-            unique_senders = window["sender_id"].nunique()
+            while end_index < group_size and timestamps[end_index] <= window_end:
+                sender_counts[sender_ids[end_index]] += 1
+                end_index += 1
 
-            if unique_senders >= 10:
+            if len(sender_counts) >= 10:
                 candidate_group_count += 1
-                candidate_transaction_count += len(window)
-                start_index += len(window)
+                candidate_transaction_count += end_index - start_index
+                start_index = end_index
+                sender_counts.clear()
             else:
+                sender_id = sender_ids[start_index]
+                sender_counts[sender_id] -= 1
+                if sender_counts[sender_id] == 0:
+                    del sender_counts[sender_id]
                 start_index += 1
 
     return {
