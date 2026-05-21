@@ -24,6 +24,7 @@ backend/src/mauripay/ingestion/samples/sample.json
 backend/src/mauripay/docs/month1_validation_report.md
 backend/src/mauripay/docs/patterns.md
 backend/src/mauripay/docs/schema_decisions.md
+backend/src/mauripay/docs/s5_ingestion_features.md
 backend/src/mauripay/synthetic/config.py
 backend/src/mauripay/synthetic/patterns.py
 backend/src/mauripay/synthetic/generator.py
