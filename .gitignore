@@ -17,6 +17,8 @@ data/generated/
 backend/data/generated/
 data_generated/
 *.parquet
+backend/models/
+backend/outputs/
 
 # Fichiers système
 .DS_Store
