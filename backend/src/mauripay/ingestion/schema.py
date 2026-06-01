@@ -42,10 +42,6 @@ class Operator(str, Enum):
     GAZAPAY = "GazaPay"
     BARIDCASH = "BaridCash"
     BCIPAY = "BCIpay"
-    ATTIJARI_MOBILE = "Attijari Mobile"
-    AMANTY = "Amanty"
-    MOOV_MONEY = "Moov Money"
-    RASSIDY = "Rassidy رصيدي"
 
 
 class Wilaya(str, Enum):
@@ -115,7 +111,7 @@ class Transaction(BaseModel):
 
     amount: Decimal = Field(
         gt=0,
-        le=Decimal("10000000.00"),
+        le=Decimal("500000.00"),
         decimal_places=2,
         description="Montant de la transaction",
     )
@@ -160,9 +156,6 @@ class Transaction(BaseModel):
 
         if value.utcoffset() != timezone.utc.utcoffset(value):
             raise ValueError("timestamp doit être en UTC+0")
-
-        if value > datetime.now(timezone.utc):
-            raise ValueError("timestamp ne peut pas être dans le futur")
 
         return value
 

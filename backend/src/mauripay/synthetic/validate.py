@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -154,16 +153,12 @@ def validate_pydantic_rows(
 
     errors: list[dict[str, Any]] = []
     valid_count = 0
-    columns = [column for column in REQUIRED_COLUMNS if column in df.columns]
 
-    for index, values in zip(df.index, df[columns].itertuples(index=False, name=None)):
-        payload = {
-            column: normalize_value_for_pydantic(value)
-            for column, value in zip(columns, values)
-        }
+    for index, row in df.iterrows():
+        payload = row_to_transaction_payload(row)
 
         try:
-            Transaction.model_validate(payload)
+            Transaction(**payload)
             valid_count += 1
         except ValidationError as exc:
             if len(errors) < max_errors:
@@ -216,14 +211,6 @@ def compute_channel_stats(df: pd.DataFrame) -> pd.Series:
     return percent_series(df["channel"])
 
 
-def compute_currency_stats(df: pd.DataFrame) -> pd.Series:
-    """
-    Calcule la repartition des devises.
-    """
-
-    return percent_series(df["currency"])
-
-
 def compute_wilaya_stats(df: pd.DataFrame) -> pd.Series:
     """
     Calcule la répartition par wilaya source.
@@ -269,80 +256,6 @@ def compute_transaction_type_stats(df: pd.DataFrame) -> pd.Series:
     """
 
     return count_series(df["transaction_type"])
-
-
-def compute_tontine_stats(df: pd.DataFrame) -> dict[str, Any]:
-    """
-    Detecte les groupes qui ressemblent a une tontine normale.
-
-    Une tontine n'a pas de colonne dediee en M1. On la repere donc par
-    signature :
-    - TRANSFER normal ;
-    - anomaly_type = NONE ;
-    - meme receiver_id ;
-    - meme amount ;
-    - au moins 10 senders differents dans une fenetre de 2 heures.
-    """
-
-    if df.empty:
-        return {"candidate_group_count": 0, "candidate_transaction_count": 0}
-
-    working_df = df.copy()
-    working_df["timestamp"] = pd.to_datetime(
-        working_df["timestamp"],
-        utc=True,
-        errors="coerce",
-    )
-
-    normal_mask = (
-        (working_df["transaction_type"] == "TRANSFER")
-        & (working_df["anomaly_type"] == "NONE")
-        & (working_df["is_anomaly"].astype(str).str.lower().isin(["false", "0"]))
-    )
-
-    working_df = (
-        working_df.loc[normal_mask, ["receiver_id", "amount", "timestamp", "sender_id"]]
-        .dropna(subset=["timestamp"])
-        .sort_values(["receiver_id", "amount", "timestamp"])
-    )
-
-    candidate_group_count = 0
-    candidate_transaction_count = 0
-
-    for _, group in working_df.groupby(["receiver_id", "amount"], sort=False, dropna=False):
-        if len(group) < 10:
-            continue
-
-        timestamps = group["timestamp"].tolist()
-        sender_ids = group["sender_id"].tolist()
-        sender_counts: dict[str, int] = defaultdict(int)
-        start_index = 0
-        end_index = 0
-        group_size = len(group)
-
-        while start_index < group_size:
-            window_end = timestamps[start_index] + pd.Timedelta(hours=2)
-
-            while end_index < group_size and timestamps[end_index] <= window_end:
-                sender_counts[sender_ids[end_index]] += 1
-                end_index += 1
-
-            if len(sender_counts) >= 10:
-                candidate_group_count += 1
-                candidate_transaction_count += end_index - start_index
-                start_index = end_index
-                sender_counts.clear()
-            else:
-                sender_id = sender_ids[start_index]
-                sender_counts[sender_id] -= 1
-                if sender_counts[sender_id] == 0:
-                    del sender_counts[sender_id]
-                start_index += 1
-
-    return {
-        "candidate_group_count": candidate_group_count,
-        "candidate_transaction_count": candidate_transaction_count,
-    }
 
 
 def compute_anomaly_stats(df: pd.DataFrame) -> dict[str, Any]:
@@ -571,10 +484,6 @@ def print_validation_report(df: pd.DataFrame, input_path: str | Path) -> None:
     channel_stats = compute_channel_stats(df)
     print_series("Répartition des canaux (%)", channel_stats)
 
-    # Devises
-    currency_stats = compute_currency_stats(df)
-    print_series("Repartition des devises (%)", currency_stats)
-
     # Géographie
     geo_summary = compute_geographic_summary(df)
 
@@ -590,14 +499,6 @@ def print_validation_report(df: pd.DataFrame, input_path: str | Path) -> None:
     # Types de transaction
     tx_type_stats = compute_transaction_type_stats(df)
     print_series("Nombre par transaction_type", tx_type_stats)
-
-    # Tontines normales probables
-    tontine_stats = compute_tontine_stats(df)
-
-    print("\nTontines normales probables")
-    print("---------------------------")
-    print(f"- Groupes detectes: {tontine_stats['candidate_group_count']}")
-    print(f"- Transactions concernees: {tontine_stats['candidate_transaction_count']}")
 
     # Anomalies
     anomaly_stats = compute_anomaly_stats(df)

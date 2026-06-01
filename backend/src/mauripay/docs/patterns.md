@@ -229,15 +229,14 @@ Dans les données, cela peut apparaître comme plusieurs transactions `TRANSFER`
 
 ### Importance pour la détection d’anomalies
 
-Une tontine peut ressembler à une anomalie de type `HIGH_FREQUENCY` ou à du `STRUCTURING` si le contexte culturel n’est pas pris en compte. Le générateur doit donc modéliser ce pattern comme un comportement normal afin d’éviter des faux positifs.
+Une tontine peut ressembler à une anomalie de type `VELOCITY` ou à du `STRUCTURING` si le contexte culturel n’est pas pris en compte. Le générateur doit donc modéliser ce pattern comme un comportement normal afin d’éviter des faux positifs.
 
 ### Idée d’implémentation
 
 ```python
-def generate_tontine_transactions(accounts, start, end):
-    # Générer 10 à 30 TRANSFER du même montant vers le même receiver_id.
-    # Ces transactions restent normales : is_anomaly=False, anomaly_type=NONE.
-    ...
+def generate_tontine_group(size: int, contribution: Decimal):
+    # Générer plusieurs TRANSFER du même montant vers le même receiver_id
+    pass
 ```
 
 ---

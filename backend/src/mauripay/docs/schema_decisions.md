@@ -272,11 +272,6 @@ La valeur par défaut est :
 MRU
 ```
 
-Pour M1, le générateur synthétique produit uniquement des montants en `MRU`.
-`XOF` et `USD` restent acceptés par le schéma pour les scénarios régionaux ou
-diaspora prévus plus tard. Une future génération multi-devise devra aussi
-définir des règles de conversion ou des fourchettes de montants par devise.
-
 ---
 
 ## 7. `transaction_type`
@@ -498,11 +493,11 @@ AnomalyType
 
 ```text
 NONE
-HIGH_AMOUNT
+FRAUD
 STRUCTURING
-OPERATOR_OUTAGE
-HIGH_FREQUENCY
-UNUSUAL_LOCATION
+VELOCITY
+OPERATOR_FAILURE
+GEO_ANOMALY
 ```
 
 ### Justification
@@ -512,11 +507,11 @@ Ce champ donne la raison de l’anomalie. Il est plus informatif qu’un simple 
 | Type | Signification |
 |---|---|
 | `NONE` | aucune anomalie |
-| `HIGH_AMOUNT` | montant inhabituellement élevé |
+| `FRAUD` | fraude probable |
 | `STRUCTURING` | fractionnement d’un gros montant en petites transactions |
-| `OPERATOR_OUTAGE` | panne ou problème opérateur simulé |
-| `HIGH_FREQUENCY` | trop de transactions en peu de temps |
-| `UNUSUAL_LOCATION` | comportement géographique inhabituel |
+| `VELOCITY` | trop de transactions en peu de temps |
+| `OPERATOR_FAILURE` | panne ou problème opérateur |
+| `GEO_ANOMALY` | comportement géographique inhabituel |
 
 ---
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from datetime import date, datetime, timezone
+from datetime import date
 
 # ─────────────────────────────────────────────
 # PARAMÈTRES GÉNÉRAUX
@@ -14,18 +14,17 @@ DEFAULT_RANDOM_SEED = 42
 DEFAULT_NUM_ACCOUNTS = 5_000
 
 DEFAULT_START_DATE = "2026-01-01"
-DEFAULT_END_DATE = datetime.now(timezone.utc).date().isoformat()
+DEFAULT_END_DATE = "2026-12-31"
 
-MAX_AMOUNT = Decimal("10000000.00")
+MAX_AMOUNT = Decimal("500000.00")
 
 # Compatible avec schema.py : pattern ACC_\d{5}
 ACCOUNT_ID_FORMAT = "ACC_{:05d}"
 
 
 # ─────────────────────────────────────────────
-# DEVISE M1
+# DEVISES
 # ─────────────────────────────────────────────
-
 
 CURRENCIES = ["MRU", "XOF", "USD"]
 
@@ -51,26 +50,18 @@ OPERATORS = [
     "GazaPay",
     "BaridCash",
     "BCIpay",
-    "Attijari Mobile",
-    "Amanty",
-    "Moov Money",
-    "Rassidy رصيدي",
 ]
 
 OPERATOR_WEIGHTS = {
-    "Bankily": 0.24,
-    "Masrvi": 0.15,
-    "Sedad": 0.12,
-    "Click": 0.08,
-    "bimbank Mobile": 0.07,
-    "Bamis Digital": 0.05,
-    "GazaPay": 0.04,
-    "BaridCash": 0.03,
-    "BCIpay": 0.03,
-    "Attijari Mobile": 0.06,
-    "Amanty": 0.05,
-    "Moov Money": 0.05,
-    "Rassidy رصيدي": 0.03,
+    "Bankily": 0.30,
+    "Masrvi": 0.18,
+    "Sedad": 0.15,
+    "Click": 0.10,
+    "bimbank Mobile": 0.08,
+    "Bamis Digital": 0.06,
+    "GazaPay": 0.05,
+    "BaridCash": 0.04,
+    "BCIpay": 0.04,
 }
 
 
@@ -203,14 +194,13 @@ AMOUNT_RANGES = {
 # FACTURES
 # ─────────────────────────────────────────────
 
-BILL_PROVIDERS = ["SOMELEC", "SNDE", "MAURITEL", "CHINGUITEL", "MATTEL"]
+BILL_PROVIDERS = ["SOMELEC", "SNDE", "MAURITEL", "CHINGUITEL"]
 
 BILL_PROVIDER_WEIGHTS = {
-    "SOMELEC": 0.42,
-    "SNDE": 0.28,
-    "MAURITEL": 0.14,
-    "CHINGUITEL": 0.08,
-    "MATTEL": 0.08,
+    "SOMELEC": 0.45,
+    "SNDE": 0.30,
+    "MAURITEL": 0.15,
+    "CHINGUITEL": 0.10,
 }
 
 
@@ -236,6 +226,3 @@ DIASPORA_CASH_IN_RATE = 0.20
 # ─────────────────────────────────────────────
 
 DEFAULT_ANOMALY_RATE = 0.02
-
-# Tontines El Lewha : comportement culturel normal, pas une anomalie.
-DEFAULT_TONTINE_RATE = 0.001
