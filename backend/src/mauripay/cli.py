@@ -1,9 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 
 from mauripay.detection.predict import predict_anomalies
 from mauripay.detection.train import train_models
+from mauripay.detection.tune import tune_models
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,6 +16,11 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--contamination", type=float, default=0.02)
     train_parser.add_argument("--n-estimators", type=int, default=100)
     train_parser.add_argument("--n-neighbors", type=int, default=20)
+    train_parser.add_argument("--test-size", type=float, default=0.0)
+
+    tune_parser = subparsers.add_parser("tune", help="Tune IF and LOF detector settings")
+    tune_parser.add_argument("--data", required=True)
+    tune_parser.add_argument("--test-size", type=float, default=0.3)
 
     predict_parser = subparsers.add_parser("predict", help="Predict anomalies")
     predict_parser.add_argument("--model", required=True, choices=["isolation_forest", "lof"])
@@ -33,6 +39,14 @@ def main() -> None:
             contamination=args.contamination,
             n_estimators=args.n_estimators,
             n_neighbors=args.n_neighbors,
+            test_size=args.test_size,
+        )
+        return
+
+    if args.command == "tune":
+        tune_models(
+            data_path=args.data,
+            test_size=args.test_size,
         )
         return
 

@@ -7,6 +7,11 @@ import pandas as pd
 
 NUMERIC_FEATURE_COLUMNS = [
     "amount",
+    "amount_log",
+    "fees_to_amount_ratio",
+    "is_failed",
+    "tx_count_5min",
+    "tx_count_10min",
     "tx_count_1h",
     "tx_count_24h",
     "tx_count_7d",
@@ -16,6 +21,28 @@ NUMERIC_FEATURE_COLUMNS = [
     "amount_mean_1h",
     "amount_mean_24h",
     "amount_mean_7d",
+    "amount_std_1h",
+    "amount_std_24h",
+    "amount_std_7d",
+    "sender_unique_receivers_1h",
+    "same_sender_receiver_count_1h",
+    "similar_amount_count_1h",
+    "amount_vs_sender_avg_7d",
+    "amount_vs_sender_past_avg_7d",
+    "sender_past_tx_count_7d",
+    "domain_risk_score",
+    "receiver_tx_count_1h",
+    "receiver_unique_senders_1h",
+    "receiver_amount_sum_1h",
+    "receiver_tx_count_24h",
+    "receiver_unique_senders_24h",
+    "receiver_amount_sum_24h",
+    "operator_failure_rate_1h",
+    "sender_wilaya_change_count_24h",
+    "hour_sin",
+    "hour_cos",
+    "day_of_week_sin",
+    "day_of_week_cos",
     "wilaya_distance_km",
     "incoming_amount_24h",
     "outgoing_amount_24h",
@@ -54,9 +81,7 @@ def min_max_scale_features(
     suffix: str = "_scaled",
     require_all: bool = False,
 ) -> pd.DataFrame:
-    """
-    Add min-max scaled columns with values between 0 and 1.
-    """
+    """Add min-max scaled columns with values between 0 and 1."""
 
     selected_columns = _select_existing_columns(
         dataframe,
@@ -86,9 +111,7 @@ def zscore_scale_features(
     suffix: str = "_zscore",
     require_all: bool = False,
 ) -> pd.DataFrame:
-    """
-    Add z-score columns based on each column mean and standard deviation.
-    """
+    """Add z-score columns based on each column mean and standard deviation."""
 
     selected_columns = _select_existing_columns(
         dataframe,
@@ -115,3 +138,5 @@ __all__ = [
     "min_max_scale_features",
     "zscore_scale_features",
 ]
+
+

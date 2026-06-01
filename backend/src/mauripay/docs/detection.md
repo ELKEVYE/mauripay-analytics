@@ -90,3 +90,37 @@ prepared for future API/dashboard work through stable saved artifacts and CSV
 outputs. A future API can call `train_models()` and `predict_anomalies()` from
 the CLI modules, and the dashboard can read the prediction CSV with transaction
 fields plus anomaly results.
+
+## Improvement Workflow
+
+The detection layer now supports stronger behavior features, holdout evaluation,
+per-anomaly-type metrics, and automatic tuning.
+
+Stronger features include:
+
+- `tx_count_5min`
+- `tx_count_10min`
+- `sender_unique_receivers_1h`
+- `same_sender_receiver_count_1h`
+- `similar_amount_count_1h`
+- `amount_vs_sender_avg_7d`
+
+Train with a real holdout split:
+
+```powershell
+python -m mauripay.detection.train --data data/generated/test_10k.csv --contamination 0.068 --test-size 0.3
+```
+
+Tune IF/LOF settings automatically:
+
+```powershell
+python -m mauripay.detection.tune --data data/generated/test_10k.csv --test-size 0.3
+```
+
+Tuning saves:
+
+- `backend/outputs/tuning_results.csv`
+- `backend/outputs/tuning_summary.json`
+
+Evaluation JSON files now include global metrics and, when `anomaly_type` exists,
+metrics grouped by anomaly family.
