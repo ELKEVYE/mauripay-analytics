@@ -12,15 +12,33 @@ __pycache__/
 venv/
 env/
 
-# Données générées lourdes
-data/generated/
-backend/data/generated/
+# Donnees generees lourdes
+data/*.csv
+data/generated/*
+backend/data/*.csv
+backend/data/generated/*
 data_generated/
 *.parquet
-backend/models/
-backend/outputs/
+backend/models/*
+backend/outputs/*
+models/*
+outputs/*
 
-# Fichiers système
+# Keep generated folder structure
+!data/generated/
+!data/generated/.gitkeep
+!backend/data/generated/
+!backend/data/generated/.gitkeep
+!backend/models/
+!backend/models/.gitkeep
+!backend/outputs/
+!backend/outputs/.gitkeep
+!models/
+!models/.gitkeep
+!outputs/
+!outputs/.gitkeep
+
+# Fichiers systeme
 .DS_Store
 Thumbs.db
 
