@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,9 @@ from mauripay.synthetic.config import (
     DEFAULT_NUM_ACCOUNTS,
     DEFAULT_RANDOM_SEED,
     DEFAULT_START_DATE,
+    DEFAULT_TONTINE_RATE,
+    CURRENCIES,
+    CURRENCY_WEIGHTS,
 )
 from mauripay.synthetic.exporters import export_transactions
 from mauripay.synthetic.patterns import (
@@ -37,8 +41,6 @@ from mauripay.synthetic.patterns import (
     is_ramadan_period,
     should_be_diaspora_cash_in,
 )
-
-
 # ─────────────────────────────────────────────
 # MODÈLE INTERNE D'UN COMPTE
 # ─────────────────────────────────────────────
@@ -62,6 +64,14 @@ class Account:
 # ─────────────────────────────────────────────
 # OUTILS TEMPORELS
 # ─────────────────────────────────────────────
+
+def choose_currency() -> str:
+    return random.choices(
+        CURRENCIES,
+        weights=[CURRENCY_WEIGHTS[currency] for currency in CURRENCIES],
+        k=1,
+    )[0]
+
 
 def parse_utc_datetime(date_text: str, end_of_day: bool = False) -> datetime:
     """
@@ -198,7 +208,7 @@ def build_base_transaction_data(
         "sender_id": sender.account_id,
         "receiver_id": receiver.account_id,
         "amount": amount,
-        "currency": "MRU",
+        "currency": choose_currency(),
         "transaction_type": transaction_type,
         "channel": channel,
         "operator": sender.operator,
@@ -311,7 +321,7 @@ def generate_structuring_transactions(
         end=end,
     )
 
-    sequence_data = create_structuring_sequence(base_data)
+    sequence_data = create_structuring_sequence(base_data, max_timestamp=end)
 
     return [
         validate_transaction(transaction_data)
@@ -345,7 +355,7 @@ def generate_high_frequency_transactions(
         end=end,
     )
 
-    sequence_data = create_high_frequency_sequence(base_data)
+    sequence_data = create_high_frequency_sequence(base_data, max_timestamp=end)
 
     return [
         validate_transaction(transaction_data)
@@ -354,8 +364,90 @@ def generate_high_frequency_transactions(
 
 
 # ─────────────────────────────────────────────
-# GÉNÉRATION PRINCIPALE
+# GENERATION DES TONTINES NORMALES
 # ─────────────────────────────────────────────
+
+def generate_tontine_transactions(
+    accounts: list[Account],
+    start: datetime,
+    end: datetime,
+) -> list[Transaction]:
+    """
+    Genere une sequence de tontine El Lewha comme comportement normal.
+
+    Signature dans les donnees :
+    - 10 a 30 comptes emetteurs ;
+    - meme beneficiaire ;
+    - meme montant ;
+    - fenetre temporelle courte de deux heures ;
+    - is_anomaly=False et anomaly_type=NONE.
+    """
+
+    if len(accounts) < 3:
+        raise ValueError("Il faut au moins 3 comptes pour une tontine")
+
+    beneficiary = random.choice(accounts)
+    possible_senders = [
+        account for account in accounts
+        if account.account_id != beneficiary.account_id
+    ]
+
+    group_size = min(
+        len(possible_senders),
+        random.randint(10, 30),
+    )
+    senders = random.sample(possible_senders, k=group_size)
+
+    amount = random.choice(
+        [
+            Decimal("500.00"),
+            Decimal("1000.00"),
+            Decimal("2000.00"),
+            Decimal("5000.00"),
+        ]
+    )
+
+    latest_start = end - timedelta(hours=2)
+    if latest_start > start:
+        base_timestamp = choose_patterned_timestamp(start, latest_start)
+    else:
+        base_timestamp = choose_patterned_timestamp(start, end)
+
+    offsets = sorted(random.randint(0, 120) for _ in senders)
+
+    sequence: list[Transaction] = []
+    for sender, offset_minutes in zip(senders, offsets):
+        timestamp = min(
+            base_timestamp + timedelta(minutes=offset_minutes),
+            end,
+        )
+
+        transaction_data: dict[str, Any] = {
+            "timestamp": timestamp,
+            "sender_id": sender.account_id,
+            "receiver_id": beneficiary.account_id,
+            "amount": amount,
+            "currency": choose_currency(),
+            "transaction_type": "TRANSFER",
+            "channel": sender.preferred_channel,
+            "operator": sender.operator,
+            "sender_wilaya": sender.wilaya,
+            "receiver_wilaya": beneficiary.wilaya,
+            "status": "SUCCESS",
+            "fees": compute_fees(amount, "TRANSFER"),
+            "is_ramadan": is_ramadan_period(timestamp),
+            "bill_provider": None,
+            "origin_country": None,
+            "is_anomaly": False,
+            "anomaly_type": "NONE",
+        }
+
+        sequence.append(validate_transaction(transaction_data))
+
+    return sequence
+
+
+# GENERATION PRINCIPALE
 
 def generate_transactions(
     rows: int,
@@ -364,6 +456,7 @@ def generate_transactions(
     end_date: str = DEFAULT_END_DATE,
     seed: int | None = DEFAULT_RANDOM_SEED,
     anomaly_rate: float = DEFAULT_ANOMALY_RATE,
+    tontine_rate: float = DEFAULT_TONTINE_RATE,
     structuring_rate: float = 0.003,
     high_frequency_rate: float = 0.002,
 ) -> list[Transaction]:
@@ -373,6 +466,7 @@ def generate_transactions(
     Paramètres :
     - rows : nombre total de transactions souhaité
     - anomaly_rate : taux d'anomalies simples
+    - tontine_rate : probabilite de creer une sequence normale de tontine
     - structuring_rate : probabilité de créer une séquence STRUCTURING
     - high_frequency_rate : probabilité de créer une séquence HIGH_FREQUENCY
 
@@ -388,17 +482,30 @@ def generate_transactions(
     if not 0 <= anomaly_rate <= 1:
         raise ValueError("anomaly_rate doit être entre 0 et 1")
 
+    if not 0 <= tontine_rate <= 1:
+        raise ValueError("tontine_rate doit être entre 0 et 1")
+
     if not 0 <= structuring_rate <= 1:
         raise ValueError("structuring_rate doit être entre 0 et 1")
 
     if not 0 <= high_frequency_rate <= 1:
         raise ValueError("high_frequency_rate doit être entre 0 et 1")
 
+    if tontine_rate + structuring_rate + high_frequency_rate > 1:
+        raise ValueError(
+            "La somme tontine_rate + structuring_rate + "
+            "high_frequency_rate doit être <= 1"
+        )
+
     if seed is not None:
         random.seed(seed)
 
     start = parse_utc_datetime(start_date, end_of_day=False)
     end = parse_utc_datetime(end_date, end_of_day=True)
+    now = datetime.now(timezone.utc)
+
+    if end > now:
+        end = now
 
     if start >= end:
         raise ValueError("start_date doit être avant end_date")
@@ -410,9 +517,18 @@ def generate_transactions(
     while len(transactions) < rows:
         random_value = random.random()
 
-        # Cas 1 : séquence STRUCTURING
-        # Cette anomalie ajoute plusieurs transactions d'un coup.
-        if random_value < structuring_rate:
+        # Cas 1 : sequence normale de tontine.
+        # Ce comportement culturel n'est pas marque comme anomalie.
+        if random_value < tontine_rate:
+            sequence = generate_tontine_transactions(
+                accounts=accounts,
+                start=start,
+                end=end,
+            )
+            transactions.extend(sequence)
+
+        # Cas 2 : sequence STRUCTURING.
+        elif random_value < tontine_rate + structuring_rate:
             sequence = generate_structuring_transactions(
                 accounts=accounts,
                 start=start,
@@ -420,9 +536,11 @@ def generate_transactions(
             )
             transactions.extend(sequence)
 
-        # Cas 2 : séquence HIGH_FREQUENCY
+        # Cas 3 : sequence HIGH_FREQUENCY.
         # Cette anomalie ajoute aussi plusieurs transactions.
-        elif random_value < structuring_rate + high_frequency_rate:
+        elif random_value < (
+            tontine_rate + structuring_rate + high_frequency_rate
+        ):
             sequence = generate_high_frequency_transactions(
                 accounts=accounts,
                 start=start,
@@ -430,7 +548,7 @@ def generate_transactions(
             )
             transactions.extend(sequence)
 
-        # Cas 3 : transaction normale ou anomalie simple
+        # Cas 4 : transaction normale ou anomalie simple.
         else:
             transaction = generate_transaction(
                 accounts=accounts,
@@ -467,6 +585,7 @@ def compute_basic_stats(transactions: list[Transaction]) -> dict[str, Any]:
         return {}
 
     channel_counts: dict[str, int] = {}
+    currency_counts: dict[str, int] = {}
     wilaya_counts: dict[str, int] = {}
     type_counts: dict[str, int] = {}
     anomaly_type_counts: dict[str, int] = {}
@@ -479,12 +598,14 @@ def compute_basic_stats(transactions: list[Transaction]) -> dict[str, Any]:
         data = tx.model_dump(mode="json")
 
         channel = data["channel"]
+        currency = data["currency"]
         sender_wilaya = data["sender_wilaya"]
         tx_type = data["transaction_type"]
         is_anomaly = data["is_anomaly"]
         anomaly_type = data["anomaly_type"]
 
         channel_counts[channel] = channel_counts.get(channel, 0) + 1
+        currency_counts[currency] = currency_counts.get(currency, 0) + 1
         wilaya_counts[sender_wilaya] = wilaya_counts.get(sender_wilaya, 0) + 1
         type_counts[tx_type] = type_counts.get(tx_type, 0) + 1
 
@@ -506,6 +627,10 @@ def compute_basic_stats(transactions: list[Transaction]) -> dict[str, Any]:
         "channels_percent": {
             key: round(value / total * 100, 2)
             for key, value in sorted(channel_counts.items())
+        },
+        "currencies_percent": {
+            key: round(value / total * 100, 2)
+            for key, value in sorted(currency_counts.items())
         },
         "transaction_types_percent": {
             key: round(value / total * 100, 2)
@@ -537,6 +662,10 @@ def print_stats(stats: dict[str, Any]) -> None:
 
     print("\nCanaux :")
     for key, value in stats.get("channels_percent", {}).items():
+        print(f"  - {key}: {value}%")
+
+    print("\nDevises :")
+    for key, value in stats.get("currencies_percent", {}).items():
         print(f"  - {key}: {value}%")
 
     print("\nGéographie :")
@@ -619,6 +748,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--tontine-rate",
+        type=float,
+        default=DEFAULT_TONTINE_RATE,
+        help="Probabilite de generer une sequence normale de tontine",
+    )
+
+    parser.add_argument(
         "--structuring-rate",
         type=float,
         default=0.003,
@@ -650,6 +786,7 @@ def main() -> None:
         end_date=args.end_date,
         seed=args.seed,
         anomaly_rate=args.anomaly_rate,
+        tontine_rate=args.tontine_rate,
         structuring_rate=args.structuring_rate,
         high_frequency_rate=args.high_frequency_rate,
     )
