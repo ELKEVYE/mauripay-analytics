@@ -8,6 +8,7 @@ from mauripay.detection.evaluate_autoencoder_thresholds import (
 from mauripay.detection.predict import predict_anomalies
 from mauripay.detection.train import train_models
 from mauripay.detection.train_autoencoder import train_autoencoder
+from mauripay.detection.tune import tune_models
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,6 +25,8 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--contamination", type=float, default=0.02)
     train_parser.add_argument("--n-estimators", type=int, default=100)
     train_parser.add_argument("--n-neighbors", type=int, default=20)
+    train_parser.add_argument("--test-size", type=float, default=0.0)
+    train_parser.add_argument("--split-seed", type=int, default=42)
     train_parser.add_argument(
         "--include-autoencoder",
         action="store_true",
@@ -67,6 +70,10 @@ def build_parser() -> argparse.ArgumentParser:
     threshold_parser.add_argument("--model-dir", default=None)
     threshold_parser.add_argument("--output-dir", default=None)
 
+    tune_parser = subparsers.add_parser("tune", help="Tune IF and LOF detector settings")
+    tune_parser.add_argument("--data", required=True)
+    tune_parser.add_argument("--test-size", type=float, default=0.3)
+
     predict_parser = subparsers.add_parser("predict", help="Predict anomalies")
     predict_parser.add_argument(
         "--model",
@@ -91,6 +98,8 @@ def main() -> None:
             contamination=args.contamination,
             n_estimators=args.n_estimators,
             n_neighbors=args.n_neighbors,
+            test_size=args.test_size,
+            split_seed=args.split_seed,
             include_autoencoder=args.include_autoencoder,
             autoencoder_epochs=args.autoencoder_epochs,
             autoencoder_batch_size=args.autoencoder_batch_size,
@@ -123,6 +132,13 @@ def main() -> None:
             test_data=args.test_data,
             model_dir=args.model_dir,
             output_dir=args.output_dir,
+        )
+        return
+
+    if args.command == "tune":
+        tune_models(
+            data_path=args.data,
+            test_size=args.test_size,
         )
         return
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -6,11 +6,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
 from mauripay.detection.features import LABEL_COLUMNS, TransactionFeatureEngineer
 from mauripay.detection.iforest import IsolationForestDetector
 from mauripay.detection.io import load_table, project_backend_root
 from mauripay.detection.lof import LOFDetector
-from mauripay.detection.metrics import evaluate_detection
+from mauripay.detection.metrics import evaluate_by_anomaly_type, evaluate_detection
 from mauripay.detection.model_registry import model_path
 from mauripay.detection.train_autoencoder import train_autoencoder
 
@@ -33,6 +36,59 @@ def normalize_label_values(values) -> list[int]:
     return lowered.isin(["true", "1", "yes", "anomaly", "fraud"]).astype(int).tolist()
 
 
+def split_dataframe(
+    df: pd.DataFrame,
+    label_column: str | None,
+    test_size: float,
+    split_seed: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if test_size <= 0:
+        return df.copy(), df.copy()
+
+    if not 0 < test_size < 1:
+        raise ValueError("test_size must be between 0 and 1, or 0 to disable splitting")
+
+    stratify = None
+    if label_column is not None:
+        labels = normalize_label_values(df[label_column])
+        if len(set(labels)) > 1:
+            stratify = labels
+
+    train_df, eval_df = train_test_split(
+        df,
+        test_size=test_size,
+        random_state=split_seed,
+        shuffle=True,
+        stratify=stratify,
+    )
+    return train_df.reset_index(drop=True), eval_df.reset_index(drop=True)
+
+
+def evaluate_detector(
+    detector,
+    X,
+    eval_df: pd.DataFrame,
+    label_column: str,
+) -> dict[str, object]:
+    result = detector.results(X)
+    y_true = normalize_label_values(eval_df[label_column])
+    evaluation = evaluate_detection(
+        y_true,
+        result["anomaly_label"].tolist(),
+        result["anomaly_score"].tolist(),
+    )
+    evaluation["label_column"] = label_column
+
+    if "anomaly_type" in eval_df.columns:
+        evaluation["by_anomaly_type"] = evaluate_by_anomaly_type(
+            eval_df["anomaly_type"],
+            result["anomaly_label"].tolist(),
+            result["anomaly_score"].tolist(),
+        )
+
+    return evaluation
+
+
 def train_models(
     data_path: str | Path,
     model_dir: str | Path | None = None,
@@ -49,6 +105,8 @@ def train_models(
     autoencoder_threshold_percentile: float = 98.0,
     autoencoder_optimize_threshold: bool = True,
     autoencoder_device: str | None = None,
+    test_size: float = 0.0,
+    split_seed: int = 42,
 ) -> dict[str, Any]:
     backend_root = project_backend_root()
     model_directory = Path(model_dir) if model_dir else backend_root / "models"
@@ -63,14 +121,18 @@ def train_models(
     if validate_pydantic_rows is not None:
         validation_report["pydantic_rows"] = validate_pydantic_rows(df)
 
-    feature_engineer = TransactionFeatureEngineer()
-    X = feature_engineer.fit_transform(df)
+    label_column = find_label_column(list(df.columns))
+    train_df, eval_df = split_dataframe(df, label_column, test_size, split_seed)
 
-    if len(df) <= n_neighbors:
+    if len(train_df) <= n_neighbors:
         raise ValueError(
-            f"Dataset has {len(df)} rows but LOF n_neighbors={n_neighbors}. "
+            f"Training dataset has {len(train_df)} rows but LOF n_neighbors={n_neighbors}. "
             "Use more rows or lower --n-neighbors."
         )
+
+    feature_engineer = TransactionFeatureEngineer()
+    X_train = feature_engineer.fit_transform(train_df)
+    X_eval = feature_engineer.transform(eval_df)
 
     detectors = {
         "isolation_forest": IsolationForestDetector(
@@ -90,30 +152,28 @@ def train_models(
         "training_date": datetime.now(timezone.utc).isoformat(),
         "dataset_path": str(Path(data_path)),
         "number_of_rows": len(df),
+        "training_rows": len(train_df),
+        "evaluation_rows": len(eval_df),
+        "evaluation_mode": "holdout" if test_size > 0 else "training_data",
+        "test_size": test_size,
+        "split_seed": split_seed,
         "contamination": contamination,
         "feature_engineering": feature_engineer.metadata(),
         "validation": validation_report,
         "model_parameters": {},
         "models": {},
+        "evaluations": {},
     }
 
-    label_column = find_label_column(list(df.columns))
-    y_true = normalize_label_values(df[label_column]) if label_column else None
-
     for name, detector in detectors.items():
-        detector.fit(X)
+        detector.fit(X_train)
         saved_path = detector.save(model_path(model_directory, name))
         metadata["models"][name] = str(saved_path)
         metadata["model_parameters"][name] = detector.parameters
 
-        if y_true is not None:
-            result = detector.results(X)
-            evaluation = evaluate_detection(
-                y_true,
-                result["anomaly_label"].tolist(),
-                result["anomaly_score"].tolist(),
-            )
-            evaluation["label_column"] = label_column
+        if label_column is not None:
+            evaluation = evaluate_detector(detector, X_eval, eval_df, label_column)
+            metadata["evaluations"][name] = evaluation
             eval_path = output_directory / f"evaluation_{name}.json"
             eval_path.write_text(
                 json.dumps(evaluation, indent=2, default=str),
@@ -180,6 +240,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Keep the autoencoder percentile threshold instead of optimizing F1.",
     )
     parser.add_argument("--autoencoder-device", default=None, choices=["cpu", "cuda"])
+    parser.add_argument("--test-size", type=float, default=0.0)
+    parser.add_argument("--split-seed", type=int, default=42)
     return parser
 
 
@@ -201,8 +263,10 @@ def main() -> None:
         autoencoder_threshold_percentile=args.autoencoder_threshold_percentile,
         autoencoder_optimize_threshold=not args.no_autoencoder_threshold_optimization,
         autoencoder_device=args.autoencoder_device,
+        test_size=args.test_size,
+        split_seed=args.split_seed,
     )
-    print(json.dumps(metadata, indent=2))
+    print(json.dumps(metadata, indent=2, default=str))
 
 
 if __name__ == "__main__":

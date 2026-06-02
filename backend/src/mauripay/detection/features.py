@@ -148,9 +148,96 @@ class TransactionFeatureEngineer:
         working = add_risk_signal_features(working)
         applied_layers.append("risk_signals")
 
+        working = self._add_domain_risk_features(working)
+        applied_layers.append("risk")
+
         if fit:
             self.selection.project_feature_layers = applied_layers
 
+        return working
+
+    @staticmethod
+    def _add_domain_risk_features(df: pd.DataFrame) -> pd.DataFrame:
+        """Add label-free business risk signals from transaction behavior."""
+        working = df.copy()
+        risk = pd.Series(0.0, index=working.index)
+
+        if "is_failed" in working.columns:
+            risk += pd.to_numeric(working["is_failed"], errors="coerce").fillna(0) * 5.0
+
+        if "amount_vs_sender_past_avg_7d" in working.columns:
+            ratio = pd.to_numeric(
+                working["amount_vs_sender_past_avg_7d"],
+                errors="coerce",
+            ).fillna(1.0)
+            risk += (ratio >= 8).astype(float) * 3.0
+            risk += (ratio >= 15).astype(float) * 2.0
+
+        if "tx_gap_seconds" in working.columns:
+            gap = pd.to_numeric(working["tx_gap_seconds"], errors="coerce").fillna(86400.0)
+            # HIGH_FREQUENCY transactions occur every 20–120 seconds.
+            # A gap < 60 s is a very strong indicator; < 120 s is still suspicious.
+            risk += (gap < 60).astype(float) * 5.0
+            risk += (gap < 120).astype(float) * 3.0
+
+        if "tx_count_5min" in working.columns:
+            tx_count_5min = pd.to_numeric(working["tx_count_5min"], errors="coerce").fillna(0)
+            risk += (tx_count_5min >= 5).astype(float) * 2.0
+            risk += (tx_count_5min >= 10).astype(float) * 2.0
+
+        if "tx_count_10min" in working.columns:
+            tx_count_10min = pd.to_numeric(working["tx_count_10min"], errors="coerce").fillna(0)
+            risk += (tx_count_10min >= 8).astype(float) * 2.0
+            risk += (tx_count_10min >= 15).astype(float) * 2.0
+
+        if {
+            "same_sender_receiver_count_1h",
+            "similar_amount_count_1h",
+            "amount_sum_1h",
+        } <= set(working.columns):
+            same_receiver = pd.to_numeric(
+                working["same_sender_receiver_count_1h"],
+                errors="coerce",
+            ).fillna(0)
+            similar_amount = pd.to_numeric(
+                working["similar_amount_count_1h"],
+                errors="coerce",
+            ).fillna(0)
+            amount_sum_1h = pd.to_numeric(working["amount_sum_1h"], errors="coerce").fillna(0)
+            risk += (
+                (same_receiver >= 4) & (similar_amount >= 4) & (amount_sum_1h >= 50_000)
+            ).astype(float) * 3.0
+
+        # 24h STRUCTURING detection: same receiver + similar amount over 24h window.
+        # More reliable than 1h because sequences can span up to 105 minutes.
+        if "same_receiver_amount_count_24h" in working.columns:
+            same_24h = pd.to_numeric(
+                working["same_receiver_amount_count_24h"], errors="coerce"
+            ).fillna(0)
+            risk += (same_24h >= 3).astype(float) * 2.0
+            risk += (same_24h >= 6).astype(float) * 2.0
+
+        if "amount_zscore_sender_7d" in working.columns:
+            zscore = pd.to_numeric(
+                working["amount_zscore_sender_7d"], errors="coerce"
+            ).fillna(0.0)
+            risk += (zscore >= 5.0).astype(float) * 2.0
+            risk += (zscore >= 8.0).astype(float) * 2.0
+
+        if "operator_failure_rate_1h" in working.columns:
+            failure_rate = pd.to_numeric(
+                working["operator_failure_rate_1h"],
+                errors="coerce",
+            ).fillna(0)
+            risk += (failure_rate >= 0.25).astype(float) * 2.0
+            risk += (failure_rate >= 0.50).astype(float) * 2.0
+
+        if "wilaya_distance_km" in working.columns:
+            distance = pd.to_numeric(working["wilaya_distance_km"], errors="coerce").fillna(0)
+            risk += (distance >= 700).astype(float) * 1.0
+            risk += (distance >= 1000).astype(float) * 1.0
+
+        working["domain_risk_score"] = risk
         return working
 
     def _prepare(self, df: pd.DataFrame) -> pd.DataFrame:

@@ -16,24 +16,25 @@ sys.path.insert(0, str(BACKEND_SRC))
 from mauripay.detection.features import TransactionFeatureEngineer  # noqa: E402
 from mauripay.detection.iforest import IsolationForestDetector  # noqa: E402
 from mauripay.detection.lof import LOFDetector  # noqa: E402
-from mauripay.detection.metrics import evaluate_detection  # noqa: E402
+from mauripay.detection.metrics import evaluate_by_anomaly_type, evaluate_detection  # noqa: E402
 from mauripay.detection.predict import predict_anomalies  # noqa: E402
 from mauripay.detection.train import train_models  # noqa: E402
+from mauripay.detection.tune import tune_models  # noqa: E402
 from mauripay.synthetic.generator import generate_transactions  # noqa: E402
 
 
 TORCH_AVAILABLE = importlib.util.find_spec("torch") is not None
 
 
-def sample_dataframe(rows: int = 80) -> pd.DataFrame:
+def sample_dataframe(rows: int = 120) -> pd.DataFrame:
     transactions = generate_transactions(
         rows=rows,
         num_accounts=60,
         seed=123,
         anomaly_rate=0.04,
         tontine_rate=0.0,
-        structuring_rate=0.0,
-        high_frequency_rate=0.0,
+        structuring_rate=0.01,
+        high_frequency_rate=0.01,
     )
     return pd.DataFrame([tx.model_dump(mode="json") for tx in transactions])
 
@@ -51,9 +52,20 @@ class DetectionIntegrationTests(unittest.TestCase):
         self.assertIn("is_anomaly", engineer.selection.ignored_columns)
         self.assertIn("anomaly_type", engineer.selection.ignored_columns)
         self.assertIn("amount", engineer.selection.numerical_columns)
+        self.assertIn("tx_count_5min", engineer.selection.numerical_columns)
+        self.assertIn("sender_unique_receivers_1h", engineer.selection.numerical_columns)
+        self.assertIn("amount_log", engineer.selection.numerical_columns)
+        self.assertIn("amount_vs_sender_past_avg_7d", engineer.selection.numerical_columns)
+        self.assertIn("domain_risk_score", engineer.selection.numerical_columns)
+        self.assertIn("fees_to_amount_ratio", engineer.selection.numerical_columns)
+        self.assertIn("receiver_unique_senders_24h", engineer.selection.numerical_columns)
+        self.assertIn("operator_failure_rate_1h", engineer.selection.numerical_columns)
+        self.assertIn("hour_sin", engineer.selection.numerical_columns)
         self.assertIn("transaction_type", engineer.selection.categorical_columns)
         self.assertIn("hour", engineer.selection.derived_datetime_columns)
+        self.assertIn("temporal", engineer.selection.project_feature_layers)
         self.assertIn("risk_signals", engineer.selection.project_feature_layers)
+        self.assertIn("risk", engineer.selection.project_feature_layers)
         self.assertIn("amount_to_sender_mean_7d", engineer.selection.numerical_columns)
         self.assertIn("failed_zero_fee_signal", engineer.selection.numerical_columns)
         self.assertIn("sender_receiver_is_new_wilaya", engineer.selection.numerical_columns)
@@ -102,8 +114,20 @@ class DetectionIntegrationTests(unittest.TestCase):
         self.assertIn("precision", metrics)
         self.assertIn("recall", metrics)
         self.assertIn("f1_score", metrics)
+        self.assertIn("accuracy", metrics)
         self.assertIn("confusion_matrix", metrics)
         self.assertIn("roc_auc", metrics)
+
+    def test_per_anomaly_type_evaluation(self):
+        metrics = evaluate_by_anomaly_type(
+            pd.Series(["NONE", "HIGH_AMOUNT", "STRUCTURING", "NONE"]),
+            y_pred=[0, 1, 0, 1],
+            y_score=[0.1, 0.9, 0.2, 0.8],
+        )
+
+        self.assertIn("HIGH_AMOUNT", metrics)
+        self.assertIn("STRUCTURING", metrics)
+        self.assertEqual(metrics["HIGH_AMOUNT"]["support"], 1)
 
     def test_train_and_predict_entry_points(self):
         dataframe = sample_dataframe()
@@ -123,12 +147,15 @@ class DetectionIntegrationTests(unittest.TestCase):
                 n_estimators=20,
                 n_neighbors=10,
                 contamination=0.05,
+                test_size=0.25,
             )
 
             self.assertTrue((model_dir / "isolation_forest.joblib").exists())
             self.assertTrue((model_dir / "lof.joblib").exists())
             self.assertTrue((model_dir / "preprocessor.joblib").exists())
             self.assertEqual(metadata["number_of_rows"], len(dataframe))
+            self.assertEqual(metadata["evaluation_mode"], "holdout")
+            self.assertIn("by_anomaly_type", metadata["evaluations"]["isolation_forest"])
             self.assertTrue((output_dir / "evaluation_isolation_forest.json").exists())
             self.assertTrue((output_dir / "evaluation_lof.json").exists())
 
@@ -205,6 +232,30 @@ class DetectionIntegrationTests(unittest.TestCase):
                     self.assertIn("autoencoder_label", predictions.columns)
                     self.assertIn("business_rule_label", predictions.columns)
                     self.assertIn("business_rule_reasons", predictions.columns)
+
+    def test_tuning_writes_summary_and_results(self):
+        dataframe = sample_dataframe()
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            data_path = temp_path / "transactions.csv"
+            output_dir = temp_path / "outputs"
+            dataframe.to_csv(data_path, index=False)
+
+            summary = tune_models(
+                data_path=data_path,
+                output_dir=output_dir,
+                contaminations=[0.04],
+                iforest_estimators=[20],
+                iforest_max_samples=["auto"],
+                lof_neighbors=[10],
+                lof_metrics=["minkowski"],
+                test_size=0.25,
+            )
+
+            self.assertTrue((output_dir / "tuning_results.csv").exists())
+            self.assertTrue((output_dir / "tuning_summary.json").exists())
+            self.assertIn("best", summary)
 
 
 if __name__ == "__main__":
