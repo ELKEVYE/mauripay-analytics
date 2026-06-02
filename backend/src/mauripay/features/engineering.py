@@ -8,7 +8,6 @@ import pandas as pd
 
 from mauripay.features.encoding import one_hot_encode_categories
 from mauripay.features.geographic import add_geographic_features
-from mauripay.features.risk_signals import add_risk_signal_features
 from mauripay.features.scaling import (
     NUMERIC_FEATURE_COLUMNS,
     min_max_scale_features,
@@ -118,7 +117,6 @@ def build_features(
     features = add_temporal_features(dataframe)
     features = add_flow_ratio_features(features)
     features = add_geographic_features(features)
-    features = add_risk_signal_features(features)
     features = one_hot_encode_categories(features)
     features = min_max_scale_features(features, columns=NUMERIC_FEATURE_COLUMNS)
     features = zscore_scale_features(features, columns=NUMERIC_FEATURE_COLUMNS)

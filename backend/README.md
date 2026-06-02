@@ -10,9 +10,10 @@ Le projet fournit actuellement :
 - un generateur de donnees synthetiques realistes ;
 - des patterns mauritaniens : Ramadan, salaires, factures, diaspora, tontines,
   geographie et canaux USSD/APP/AGENT ;
-- des anomalies injectees pour tester les algorithmes de detection ;
+- des anomalies injectees pour tester les futurs algorithmes de detection ;
 - des exports CSV, JSON et Parquet ;
-- un pipeline ML avec Isolation Forest, LOF et Autoencoder PyTorch.
+- une base technique pour les futurs modules ML : Isolation Forest, LOF et
+  Autoencoder.
 
 ## Structure utile
 
@@ -86,57 +87,6 @@ Les tests unitaires ajoutes en M1 restent des tests de preuve pour le schema et
 le generateur. La couverture complete demandee par le CDC reste planifiee en
 M3 avec le dashboard, le frontend et la CI/CD.
 
-## Detection d'anomalies
-
-Depuis `backend/` :
-
-```powershell
-$env:PYTHONPATH="src"
-
-python -m mauripay.detection.train --data data/generated/mauripay_s_10k.csv
-python -m mauripay.detection.train --data data/generated/mauripay_s_10k.csv --include-autoencoder
-python -m mauripay.detection.predict --model isolation_forest --data data/generated/mauripay_s_10k.csv
-python -m mauripay.detection.predict --model lof --data data/generated/mauripay_s_10k.csv
-python -m mauripay.detection.predict --model autoencoder --data data/generated/mauripay_s_10k.csv
-```
-
-Le pipeline `train` entraine Isolation Forest et LOF par defaut. L'option
-`--include-autoencoder` ajoute l'autoencoder au meme lancement, en l'entrainant
-sur les lignes normales identifiees par une colonne de label comme
-`is_anomaly`.
-
-Pour regler uniquement l'autoencoder sans relancer IF/LOF :
-
-```powershell
-python -m mauripay.detection.train_autoencoder --data data/generated/mauripay_s_10k.csv
-```
-
-Commandes officielles Autoencoder :
-
-```powershell
-# Workflow recommande : pipeline complet
-python -m mauripay.detection.train --data data/generated/mauripay_s_10k.csv --include-autoencoder
-python -m mauripay.detection.predict --model autoencoder --data data/generated/mauripay_s_10k.csv
-
-# Workflow tuning : autoencoder seul
-python -m mauripay.detection.train_autoencoder --data data/generated/mauripay_s_10k.csv --epochs 50 --batch-size 128 --threshold-percentile 98
-python -m mauripay.detection.predict_autoencoder --data data/generated/mauripay_s_10k.csv
-
-# Equivalents CLI package
-mauripay train --data data/generated/mauripay_s_10k.csv --include-autoencoder
-mauripay train-autoencoder --data data/generated/mauripay_s_10k.csv
-mauripay predict --model autoencoder --data data/generated/mauripay_s_10k.csv
-```
-
-Artefacts produits :
-
-- `backend/models/isolation_forest.joblib`
-- `backend/models/lof.joblib`
-- `backend/models/autoencoder.joblib` si `--include-autoencoder` est active
-- `backend/models/preprocessor.joblib`
-- `backend/models/autoencoder_preprocessor.joblib` pour l'autoencoder
-- evaluations JSON dans `backend/outputs/`
-
 ## Resultats attendus
 
 Avec les parametres par defaut et `seed=42`, un controle M1 sur 10 000 lignes
@@ -161,9 +111,9 @@ qui augmente le taux final mesure ligne par ligne.
 - S4 : anomalies, tontines normales, validation Pydantic, generation S/M/L et
   documentation.
 
-Apres regeneration et validation des fichiers S/M/L, le projet dispose de la
-base S5 : preparation ML, features, baselines Isolation Forest / LOF /
-Autoencoder et evaluation.
+Apres regeneration et validation des fichiers S/M/L, le projet peut passer a
+S5 : preparation ML, features, baseline Isolation Forest / LOF / Autoencoder et
+evaluation.
 
 ## Statut M1 pour presentation
 
@@ -181,6 +131,7 @@ Termine :
 
 Planifie pour M2/M3 :
 
+- features ML et benchmarks Isolation Forest / LOF / Autoencoder ;
 - API FastAPI et documentation OpenAPI ;
 - dashboard React ;
 - couverture de tests complete, integration et CI/CD.

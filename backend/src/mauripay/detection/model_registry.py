@@ -2,19 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from mauripay.detection.autoencoder import AutoencoderDetector
 from mauripay.detection.iforest import IsolationForestDetector
 from mauripay.detection.lof import LOFDetector
 
 
 MODEL_FILENAMES = {
-    "autoencoder": "autoencoder.joblib",
     "isolation_forest": "isolation_forest.joblib",
     "lof": "lof.joblib",
 }
 
 DETECTOR_CLASSES = {
-    "autoencoder": AutoencoderDetector,
     "isolation_forest": IsolationForestDetector,
     "lof": LOFDetector,
 }

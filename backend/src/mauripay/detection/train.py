@@ -15,7 +15,6 @@ from mauripay.detection.io import load_table, project_backend_root
 from mauripay.detection.lof import LOFDetector
 from mauripay.detection.metrics import evaluate_by_anomaly_type, evaluate_detection
 from mauripay.detection.model_registry import model_path
-from mauripay.detection.train_autoencoder import train_autoencoder
 
 try:
     from mauripay.synthetic.validate import validate_columns, validate_pydantic_rows
@@ -99,12 +98,6 @@ def train_models(
     random_state: int = 42,
     n_neighbors: int = 20,
     metric: str = "minkowski",
-    include_autoencoder: bool = False,
-    autoencoder_epochs: int = 50,
-    autoencoder_batch_size: int = 128,
-    autoencoder_threshold_percentile: float = 98.0,
-    autoencoder_optimize_threshold: bool = True,
-    autoencoder_device: str | None = None,
     test_size: float = 0.0,
     split_seed: int = 42,
 ) -> dict[str, Any]:
@@ -185,31 +178,6 @@ def train_models(
     metadata["preprocessor"] = str(preprocessor_path)
     metadata["label_column_used_for_evaluation"] = label_column
 
-    if include_autoencoder:
-        autoencoder_metadata = train_autoencoder(
-            data_path=data_path,
-            model_dir=model_directory,
-            output_dir=output_directory,
-            epochs=autoencoder_epochs,
-            batch_size=autoencoder_batch_size,
-            threshold_percentile=autoencoder_threshold_percentile,
-            optimize_decision_threshold=autoencoder_optimize_threshold,
-            random_state=random_state,
-            device=autoencoder_device,
-        )
-        metadata["models"]["autoencoder"] = autoencoder_metadata["model"]
-        metadata["model_parameters"]["autoencoder"] = autoencoder_metadata[
-            "model_parameters"
-        ]
-        metadata["autoencoder"] = {
-            "preprocessor": autoencoder_metadata["preprocessor"],
-            "metadata": str(model_directory / "metadata_autoencoder.json"),
-            "evaluation": autoencoder_metadata["evaluation"],
-            "normal_rows_used_for_training": autoencoder_metadata[
-                "normal_rows_used_for_training"
-            ],
-        }
-
     metadata_path = model_directory / "metadata.json"
     metadata_path.write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
     return metadata
@@ -226,20 +194,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument("--n-neighbors", type=int, default=20)
     parser.add_argument("--metric", default="minkowski")
-    parser.add_argument(
-        "--include-autoencoder",
-        action="store_true",
-        help="Also train the autoencoder after IF/LOF. Requires a label column.",
-    )
-    parser.add_argument("--autoencoder-epochs", type=int, default=50)
-    parser.add_argument("--autoencoder-batch-size", type=int, default=128)
-    parser.add_argument("--autoencoder-threshold-percentile", type=float, default=98.0)
-    parser.add_argument(
-        "--no-autoencoder-threshold-optimization",
-        action="store_true",
-        help="Keep the autoencoder percentile threshold instead of optimizing F1.",
-    )
-    parser.add_argument("--autoencoder-device", default=None, choices=["cpu", "cuda"])
     parser.add_argument("--test-size", type=float, default=0.0)
     parser.add_argument("--split-seed", type=int, default=42)
     return parser
@@ -257,12 +211,6 @@ def main() -> None:
         random_state=args.random_state,
         n_neighbors=args.n_neighbors,
         metric=args.metric,
-        include_autoencoder=args.include_autoencoder,
-        autoencoder_epochs=args.autoencoder_epochs,
-        autoencoder_batch_size=args.autoencoder_batch_size,
-        autoencoder_threshold_percentile=args.autoencoder_threshold_percentile,
-        autoencoder_optimize_threshold=not args.no_autoencoder_threshold_optimization,
-        autoencoder_device=args.autoencoder_device,
         test_size=args.test_size,
         split_seed=args.split_seed,
     )
