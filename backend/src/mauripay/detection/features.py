@@ -13,6 +13,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from mauripay.features.geographic import add_geographic_features
+from mauripay.features.risk_signals import add_risk_signal_features
 from mauripay.features.temporal import add_flow_ratio_features, add_temporal_features
 
 
@@ -143,6 +144,9 @@ class TransactionFeatureEngineer:
         if self._has_columns(working, {"sender_wilaya", "receiver_wilaya"}):
             working = add_geographic_features(working)
             applied_layers.append("geographic")
+
+        working = add_risk_signal_features(working)
+        applied_layers.append("risk_signals")
 
         if fit:
             self.selection.project_feature_layers = applied_layers

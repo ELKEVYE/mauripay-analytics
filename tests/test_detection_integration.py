@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
@@ -19,6 +20,9 @@ from mauripay.detection.metrics import evaluate_detection  # noqa: E402
 from mauripay.detection.predict import predict_anomalies  # noqa: E402
 from mauripay.detection.train import train_models  # noqa: E402
 from mauripay.synthetic.generator import generate_transactions  # noqa: E402
+
+
+TORCH_AVAILABLE = importlib.util.find_spec("torch") is not None
 
 
 def sample_dataframe(rows: int = 80) -> pd.DataFrame:
@@ -49,6 +53,11 @@ class DetectionIntegrationTests(unittest.TestCase):
         self.assertIn("amount", engineer.selection.numerical_columns)
         self.assertIn("transaction_type", engineer.selection.categorical_columns)
         self.assertIn("hour", engineer.selection.derived_datetime_columns)
+        self.assertIn("risk_signals", engineer.selection.project_feature_layers)
+        self.assertIn("amount_to_sender_mean_7d", engineer.selection.numerical_columns)
+        self.assertIn("failed_zero_fee_signal", engineer.selection.numerical_columns)
+        self.assertIn("sender_receiver_is_new_wilaya", engineer.selection.numerical_columns)
+        self.assertIn("structuring_signal", engineer.selection.numerical_columns)
 
     def test_iforest_trains_predicts_and_loads(self):
         dataframe = sample_dataframe()
@@ -134,6 +143,68 @@ class DetectionIntegrationTests(unittest.TestCase):
             self.assertIn("anomaly_label", predictions.columns)
             self.assertIn("anomaly_score", predictions.columns)
             self.assertIn("algorithm", predictions.columns)
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "torch not installed")
+    def test_train_models_with_autoencoder_predicts_all_detectors_end_to_end(self):
+        dataframe = sample_dataframe(rows=80)
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            data_path = temp_path / "transactions.csv"
+            model_dir = temp_path / "models"
+            output_dir = temp_path / "outputs"
+            prediction_dir = temp_path / "predictions"
+            dataframe.to_csv(data_path, index=False)
+
+            metadata = train_models(
+                data_path=data_path,
+                model_dir=model_dir,
+                output_dir=output_dir,
+                n_estimators=20,
+                n_neighbors=10,
+                contamination=0.05,
+                include_autoencoder=True,
+                autoencoder_epochs=1,
+                autoencoder_batch_size=16,
+                autoencoder_optimize_threshold=False,
+                autoencoder_device="cpu",
+            )
+
+            self.assertTrue((model_dir / "isolation_forest.joblib").exists())
+            self.assertTrue((model_dir / "lof.joblib").exists())
+            self.assertTrue((model_dir / "autoencoder.joblib").exists())
+            self.assertTrue((model_dir / "autoencoder_preprocessor.joblib").exists())
+            self.assertTrue((output_dir / "evaluation_autoencoder.json").exists())
+            self.assertIn("autoencoder", metadata["models"])
+            self.assertIn("autoencoder", metadata["model_parameters"])
+            self.assertEqual(
+                metadata["autoencoder"]["normal_rows_used_for_training"],
+                int(dataframe["is_anomaly"].eq(False).sum()),
+            )
+
+            expected_columns = {
+                "anomaly_label",
+                "anomaly_score",
+                "algorithm",
+            }
+            for algorithm in ["isolation_forest", "lof", "autoencoder"]:
+                output_path = predict_anomalies(
+                    algorithm=algorithm,
+                    data_path=data_path,
+                    model_dir=model_dir,
+                    output=prediction_dir / f"{algorithm}.csv",
+                )
+                predictions = pd.read_csv(output_path)
+
+                self.assertEqual(len(predictions), len(dataframe))
+                self.assertTrue(expected_columns <= set(predictions.columns))
+                self.assertEqual(set(predictions["algorithm"]), {algorithm})
+                self.assertTrue(set(predictions["anomaly_label"].unique()) <= {0, 1})
+
+                if algorithm == "autoencoder":
+                    self.assertIn("autoencoder_label", predictions.columns)
+                    self.assertIn("business_rule_label", predictions.columns)
+                    self.assertIn("business_rule_reasons", predictions.columns)
 
 
 if __name__ == "__main__":
