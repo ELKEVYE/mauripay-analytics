@@ -1,0 +1,2 @@
+[console_scripts]
+mauripay = mauripay.cli:main

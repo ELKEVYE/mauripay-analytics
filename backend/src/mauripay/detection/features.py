@@ -13,6 +13,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from mauripay.features.geographic import add_geographic_features
+from mauripay.features.risk_signals import add_risk_signal_features
 from mauripay.features.temporal import add_flow_ratio_features, add_temporal_features
 
 
@@ -144,6 +145,9 @@ class TransactionFeatureEngineer:
             working = add_geographic_features(working)
             applied_layers.append("geographic")
 
+        working = add_risk_signal_features(working)
+        applied_layers.append("risk_signals")
+
         working = self._add_domain_risk_features(working)
         applied_layers.append("risk")
 
@@ -235,6 +239,7 @@ class TransactionFeatureEngineer:
 
         working["domain_risk_score"] = risk
         return working
+
     def _prepare(self, df: pd.DataFrame) -> pd.DataFrame:
         working = self._add_project_features(df, fit=False)
         working = self._prepare_datetime_features(working, self.selection.datetime_columns)
