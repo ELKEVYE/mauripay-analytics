@@ -7,6 +7,7 @@ import pandas as pd
 
 
 WINDOWS: Mapping[str, str] = {
+    "5min": "5min",
     "1h": "1h",
     "24h": "24h",
     "7d": "7D",
@@ -18,12 +19,15 @@ TEMPORAL_FEATURE_COLUMNS = [
     "tx_count_1h",
     "tx_count_24h",
     "tx_count_7d",
+    "amount_sum_5min",
     "amount_sum_1h",
     "amount_sum_24h",
     "amount_sum_7d",
+    "amount_mean_5min",
     "amount_mean_1h",
     "amount_mean_24h",
     "amount_mean_7d",
+    "amount_std_5min",
     "amount_std_1h",
     "amount_std_24h",
     "amount_std_7d",
