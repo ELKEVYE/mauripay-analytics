@@ -28,6 +28,35 @@ def normalize_label_values(values) -> list[int]:
     return lowered.isin(["true", "1", "yes", "anomaly", "fraud"]).astype(int).tolist()
 
 
+def sample_dataframe(
+    df: pd.DataFrame,
+    label_column: str,
+    max_rows: int | None,
+    random_state: int | None,
+) -> pd.DataFrame:
+    if max_rows is None or len(df) <= max_rows:
+        return df.reset_index(drop=True)
+    if max_rows <= 0:
+        raise ValueError("max_rows must be positive")
+
+    sampled = (
+        df.groupby(label_column, group_keys=False)
+        .sample(frac=max_rows / len(df), random_state=random_state)
+    )
+    if len(sampled) >= max_rows:
+        return sampled.sample(n=max_rows, random_state=random_state).reset_index(drop=True)
+
+    remaining = max_rows - len(sampled)
+    extra = df.drop(index=sampled.index, errors="ignore").sample(
+        n=min(remaining, len(df) - len(sampled)),
+        random_state=random_state,
+    )
+    return pd.concat([sampled, extra], ignore_index=True).sample(
+        frac=1,
+        random_state=random_state,
+    ).reset_index(drop=True)
+
+
 def optimize_threshold(
     y_true: list[int],
     anomaly_scores: list[float] | np.ndarray,
@@ -185,6 +214,7 @@ def train_autoencoder(
     batch_size: int = 128,
     threshold_percentile: float = 98.0,
     optimize_decision_threshold: bool = True,
+    max_rows: int | None = None,
     random_state: int | None = 42,
     device: str | None = None,
 ) -> dict[str, Any]:
@@ -194,13 +224,22 @@ def train_autoencoder(
     model_directory.mkdir(parents=True, exist_ok=True)
     output_directory.mkdir(parents=True, exist_ok=True)
 
+    print(f"Loading dataset: {data_path}", flush=True)
     df = load_table(data_path)
+    print(f"Dataset loaded: rows={len(df)}, columns={len(df.columns)}", flush=True)
     label_column = find_label_column(list(df.columns))
     if label_column is None:
         raise ValueError(
             "Autoencoder training requires a label column to select normal rows. "
             f"Expected one of: {', '.join(sorted(LABEL_COLUMNS))}"
         )
+    if max_rows is not None and len(df) > max_rows:
+        print(
+            f"Sampling dataset for this run: rows={max_rows} from {len(df)}",
+            flush=True,
+        )
+        df = sample_dataframe(df, label_column, max_rows, random_state)
+        print(f"Sample ready: rows={len(df)}", flush=True)
 
     y_true = normalize_label_values(df[label_column])
     normal_mask = [label == 0 for label in y_true]
@@ -208,8 +247,11 @@ def train_autoencoder(
     if df_normal.empty:
         raise ValueError("No normal transactions found for autoencoder training")
 
+    print(f"Normal rows used for training: {len(df_normal)}", flush=True)
+    print("Preparing training features...", flush=True)
     feature_engineer = TransactionFeatureEngineer()
     X_train_normal = feature_engineer.fit_transform(df_normal)
+    print(f"Training feature matrix ready: shape={X_train_normal.shape}", flush=True)
 
     detector = AutoencoderDetector(
         encoding_dim=encoding_dim,
@@ -223,11 +265,15 @@ def train_autoencoder(
     )
     detector.fit(X_train_normal)
 
+    print("Preparing full dataset features...", flush=True)
     X_full = feature_engineer.transform(df)
+    print(f"Full feature matrix ready: shape={X_full.shape}", flush=True)
+    print("Scoring full dataset...", flush=True)
     anomaly_scores = detector.score_samples(X_full)
     threshold_optimization: dict[str, Any] | None = None
     has_two_label_classes = len(set(y_true)) == 2
     if optimize_decision_threshold and has_two_label_classes:
+        print("Optimizing decision threshold...", flush=True)
         threshold_optimization = optimize_threshold(
             y_true,
             anomaly_scores,
@@ -236,7 +282,16 @@ def train_autoencoder(
         detector.threshold_ = float(selected_threshold["threshold"])
         detector.threshold_percentile = float(selected_threshold["percentile"])
 
-    result = apply_business_rules(df, detector.results(X_full))
+    result = apply_business_rules(
+        df,
+        pd.DataFrame(
+            {
+                "anomaly_label": (anomaly_scores > detector.threshold_).astype(int),
+                "anomaly_score": anomaly_scores.astype(float),
+                "algorithm": detector.algorithm,
+            }
+        ),
+    )
     evaluation = evaluate_detection(
         y_true,
         result["anomaly_label"].tolist(),
@@ -250,8 +305,10 @@ def train_autoencoder(
             "requires both normal and anomaly labels"
         )
     eval_path = output_directory / "evaluation_autoencoder.json"
+    print(f"Writing evaluation: {eval_path}", flush=True)
     eval_path.write_text(json.dumps(evaluation, indent=2, default=str), encoding="utf-8")
 
+    print("Building error analysis...", flush=True)
     error_analysis = build_error_analysis(
         df=df,
         y_true=y_true,
@@ -262,13 +319,16 @@ def train_autoencoder(
 
     model_path = model_directory / "autoencoder.joblib"
     preprocessor_path = model_directory / "autoencoder_preprocessor.joblib"
+    print(f"Saving model: {model_path}", flush=True)
     detector.save(model_path)
+    print(f"Saving preprocessor: {preprocessor_path}", flush=True)
     feature_engineer.save(preprocessor_path)
 
     metadata: dict[str, Any] = {
         "training_date": datetime.now(timezone.utc).isoformat(),
         "dataset_path": str(Path(data_path)),
         "number_of_rows": len(df),
+        "max_rows": max_rows,
         "normal_rows_used_for_training": len(df_normal),
         "label_column_used_for_training": label_column,
         "model": str(model_path),
@@ -282,6 +342,7 @@ def train_autoencoder(
     if threshold_optimization is not None:
         metadata["threshold_optimization"] = threshold_optimization
     metadata_path = model_directory / "metadata_autoencoder.json"
+    print(f"Writing metadata: {metadata_path}", flush=True)
     metadata_path.write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
     return metadata
 
@@ -299,6 +360,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--threshold-percentile", type=float, default=98.0)
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Use a stratified sample for faster local training/evaluation",
+    )
     parser.add_argument(
         "--no-threshold-optimization",
         action="store_true",
@@ -322,6 +389,7 @@ def main() -> None:
         batch_size=args.batch_size,
         threshold_percentile=args.threshold_percentile,
         optimize_decision_threshold=not args.no_threshold_optimization,
+        max_rows=args.max_rows,
         random_state=args.random_state,
         device=args.device,
     )

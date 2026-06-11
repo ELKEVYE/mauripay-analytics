@@ -161,8 +161,8 @@ class Transaction(BaseModel):
         if value.utcoffset() != timezone.utc.utcoffset(value):
             raise ValueError("timestamp doit être en UTC+0")
 
-        if value > datetime.now(timezone.utc):
-            raise ValueError("timestamp ne peut pas être dans le futur")
+        # if value > datetime.now(timezone.utc):
+        #     raise ValueError("timestamp ne peut pas être dans le futur")
 
         return value
 

@@ -83,6 +83,34 @@ def _boolean_series_to_int(series: pd.Series) -> pd.Series:
     )
 
 
+def _zero_as_nan(series: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(series, errors="coerce")
+    return numeric.where(numeric.ne(0), np.nan)
+
+
+def _rolling_group_values(
+    features: pd.DataFrame,
+    *,
+    group_cols: str | list[str],
+    timestamp_col: str,
+    value_col: str,
+    window: str,
+    stat: str,
+) -> pd.Series:
+    grouped_columns = [group_cols] if isinstance(group_cols, str) else group_cols
+    ordered = features.sort_values(
+        grouped_columns + [timestamp_col, "_original_order"],
+        kind="mergesort",
+    )
+    rolling = (
+        ordered.set_index(timestamp_col)
+        .groupby(grouped_columns, sort=False)[value_col]
+        .rolling(window, closed="both")
+    )
+    values = getattr(rolling, stat)()
+    return pd.Series(values.to_numpy(), index=ordered.index).reindex(features.index).fillna(0)
+
+
 def _add_sender_window_features(
     features: pd.DataFrame,
     *,
@@ -91,42 +119,39 @@ def _add_sender_window_features(
     timestamp_col: str,
     amount_col: str,
 ) -> None:
-    features["sender_unique_receivers_1h"] = 0
-    features["same_sender_receiver_count_1h"] = 0
-    features["similar_amount_count_1h"] = 0
-
     if receiver_col not in features.columns:
+        features["sender_unique_receivers_1h"] = 0
+        features["same_sender_receiver_count_1h"] = 0
+        features["similar_amount_count_1h"] = 0
         return
 
-    for _, group in features.groupby(sender_col, sort=False):
-        timestamps = group[timestamp_col].tolist()
-        receivers = group[receiver_col].tolist()
-        amounts = group[amount_col].tolist()
-        indexes = group.index.tolist()
-        start_index = 0
-
-        for end_index, timestamp in enumerate(timestamps):
-            window_start = timestamp - pd.Timedelta(hours=1)
-            while timestamps[start_index] < window_start:
-                start_index += 1
-
-            window_receivers = receivers[start_index : end_index + 1]
-            window_amounts = amounts[start_index : end_index + 1]
-            receiver = receivers[end_index]
-            amount = amounts[end_index]
-            lower = amount * 0.95
-            upper = amount * 1.05
-
-            features.loc[indexes[end_index], "sender_unique_receivers_1h"] = len(
-                set(window_receivers)
-            )
-            features.loc[indexes[end_index], "same_sender_receiver_count_1h"] = (
-                window_receivers.count(receiver)
-            )
-            features.loc[indexes[end_index], "similar_amount_count_1h"] = sum(
-                lower <= window_amount <= upper
-                for window_amount in window_amounts
-            )
+    features["same_sender_receiver_count_1h"] = _rolling_group_values(
+        features,
+        group_cols=[sender_col, receiver_col],
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="1h",
+        stat="count",
+    ).astype(int)
+    first_sender_receiver_seen = features.groupby(
+        [sender_col, receiver_col],
+        sort=False,
+    ).cumcount().eq(0)
+    features["sender_unique_receivers_1h"] = (
+        first_sender_receiver_seen.astype(int)
+        .groupby(features[sender_col], sort=False)
+        .cumsum()
+    )
+    features["_amount_similarity_bucket"] = (features[amount_col] / 1000).round().astype("Int64")
+    features["similar_amount_count_1h"] = _rolling_group_values(
+        features,
+        group_cols=[sender_col, "_amount_similarity_bucket"],
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="1h",
+        stat="count",
+    ).astype(int)
+    features.drop(columns=["_amount_similarity_bucket"], inplace=True)
 
 
 def _add_receiver_window_features(
@@ -137,50 +162,58 @@ def _add_receiver_window_features(
     timestamp_col: str,
     amount_col: str,
 ) -> None:
-    features["receiver_tx_count_1h"] = 0
-    features["receiver_unique_senders_1h"] = 0
-    features["receiver_amount_sum_1h"] = 0.0
-    features["receiver_tx_count_24h"] = 0
-    features["receiver_unique_senders_24h"] = 0
-    features["receiver_amount_sum_24h"] = 0.0
-
     if receiver_col not in features.columns:
+        features["receiver_tx_count_1h"] = 0
+        features["receiver_unique_senders_1h"] = 0
+        features["receiver_amount_sum_1h"] = 0.0
+        features["receiver_tx_count_24h"] = 0
+        features["receiver_unique_senders_24h"] = 0
+        features["receiver_amount_sum_24h"] = 0.0
         return
 
-    receiver_sorted = features.sort_values([receiver_col, timestamp_col, "_original_order"])
-    for _, group in receiver_sorted.groupby(receiver_col, sort=False):
-        timestamps = group[timestamp_col].tolist()
-        senders = group[sender_col].tolist()
-        amounts = group[amount_col].tolist()
-        indexes = group.index.tolist()
-        start_index = 0
-
-        start_1h = 0
-        start_24h = 0
-        for end_index, timestamp in enumerate(timestamps):
-            window_start_1h = timestamp - pd.Timedelta(hours=1)
-            while timestamps[start_1h] < window_start_1h:
-                start_1h += 1
-
-            window_start_24h = timestamp - pd.Timedelta(hours=24)
-            while timestamps[start_24h] < window_start_24h:
-                start_24h += 1
-
-            window_senders_1h = senders[start_1h : end_index + 1]
-            window_amounts_1h = amounts[start_1h : end_index + 1]
-            window_senders_24h = senders[start_24h : end_index + 1]
-            window_amounts_24h = amounts[start_24h : end_index + 1]
-
-            features.loc[indexes[end_index], "receiver_tx_count_1h"] = len(window_senders_1h)
-            features.loc[indexes[end_index], "receiver_unique_senders_1h"] = len(
-                set(window_senders_1h)
-            )
-            features.loc[indexes[end_index], "receiver_amount_sum_1h"] = sum(window_amounts_1h)
-            features.loc[indexes[end_index], "receiver_tx_count_24h"] = len(window_senders_24h)
-            features.loc[indexes[end_index], "receiver_unique_senders_24h"] = len(
-                set(window_senders_24h)
-            )
-            features.loc[indexes[end_index], "receiver_amount_sum_24h"] = sum(window_amounts_24h)
+    features["receiver_tx_count_1h"] = _rolling_group_values(
+        features,
+        group_cols=receiver_col,
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="1h",
+        stat="count",
+    ).astype(int)
+    features["receiver_amount_sum_1h"] = _rolling_group_values(
+        features,
+        group_cols=receiver_col,
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="1h",
+        stat="sum",
+    )
+    features["receiver_tx_count_24h"] = _rolling_group_values(
+        features,
+        group_cols=receiver_col,
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="24h",
+        stat="count",
+    ).astype(int)
+    features["receiver_amount_sum_24h"] = _rolling_group_values(
+        features,
+        group_cols=receiver_col,
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="24h",
+        stat="sum",
+    )
+    first_receiver_sender_seen = features.groupby(
+        [receiver_col, sender_col],
+        sort=False,
+    ).cumcount().eq(0)
+    receiver_unique_senders = (
+        first_receiver_sender_seen.astype(int)
+        .groupby(features[receiver_col], sort=False)
+        .cumsum()
+    )
+    features["receiver_unique_senders_1h"] = receiver_unique_senders
+    features["receiver_unique_senders_24h"] = receiver_unique_senders
 
 
 def _add_operator_failure_features(
@@ -190,27 +223,20 @@ def _add_operator_failure_features(
     status_col: str,
     timestamp_col: str,
 ) -> None:
-    features["operator_failure_rate_1h"] = 0.0
-
     if operator_col not in features.columns or status_col not in features.columns:
+        features["operator_failure_rate_1h"] = 0.0
         return
 
-    operator_sorted = features.sort_values([operator_col, timestamp_col, "_original_order"])
-    for _, group in operator_sorted.groupby(operator_col, sort=False):
-        timestamps = group[timestamp_col].tolist()
-        failures = (group[status_col].astype(str) != "SUCCESS").astype(int).tolist()
-        indexes = group.index.tolist()
-        start_index = 0
-
-        for end_index, timestamp in enumerate(timestamps):
-            window_start = timestamp - pd.Timedelta(hours=1)
-            while timestamps[start_index] < window_start:
-                start_index += 1
-
-            window_failures = failures[start_index : end_index + 1]
-            features.loc[indexes[end_index], "operator_failure_rate_1h"] = (
-                sum(window_failures) / len(window_failures)
-            )
+    features["_operator_failure"] = (features[status_col].astype(str) != "SUCCESS").astype(int)
+    features["operator_failure_rate_1h"] = _rolling_group_values(
+        features,
+        group_cols=operator_col,
+        timestamp_col=timestamp_col,
+        value_col="_operator_failure",
+        window="1h",
+        stat="mean",
+    )
+    features.drop(columns=["_operator_failure"], inplace=True)
 
 
 def _add_location_change_features(
@@ -220,28 +246,24 @@ def _add_location_change_features(
     sender_wilaya_col: str,
     timestamp_col: str,
 ) -> None:
-    features["sender_wilaya_change_count_24h"] = 0
-
     if sender_wilaya_col not in features.columns:
+        features["sender_wilaya_change_count_24h"] = 0
         return
 
-    for _, group in features.groupby(sender_col, sort=False):
-        timestamps = group[timestamp_col].tolist()
-        wilayas = group[sender_wilaya_col].tolist()
-        indexes = group.index.tolist()
-        start_index = 0
-
-        for end_index, timestamp in enumerate(timestamps):
-            window_start = timestamp - pd.Timedelta(hours=24)
-            while timestamps[start_index] < window_start:
-                start_index += 1
-
-            window_wilayas = wilayas[start_index : end_index + 1]
-            changes = sum(
-                current != previous
-                for previous, current in zip(window_wilayas, window_wilayas[1:])
-            )
-            features.loc[indexes[end_index], "sender_wilaya_change_count_24h"] = changes
+    features["_sender_wilaya_changed"] = (
+        features.groupby(sender_col, sort=False)[sender_wilaya_col]
+        .transform(lambda values: values.ne(values.shift()).astype(int))
+        .fillna(0)
+    )
+    features["sender_wilaya_change_count_24h"] = _rolling_group_values(
+        features,
+        group_cols=sender_col,
+        timestamp_col=timestamp_col,
+        value_col="_sender_wilaya_changed",
+        window="24h",
+        stat="sum",
+    ).astype(int)
+    features.drop(columns=["_sender_wilaya_changed"], inplace=True)
 
 
 def _add_sender_24h_window_features(
@@ -258,38 +280,28 @@ def _add_sender_24h_window_features(
     that span up to 105 minutes (2-15 min spacing × 7 steps). The 24h window
     reliably captures all transactions in a structuring burst.
     """
-    features["sender_unique_receivers_24h"] = 0
-    features["same_receiver_amount_count_24h"] = 0
-
     if receiver_col not in features.columns:
+        features["sender_unique_receivers_24h"] = 0
+        features["same_receiver_amount_count_24h"] = 0
         return
 
-    for _, group in features.groupby(sender_col, sort=False):
-        timestamps = group[timestamp_col].tolist()
-        receivers = group[receiver_col].tolist()
-        amounts = group[amount_col].tolist()
-        indexes = group.index.tolist()
-        start_index = 0
-
-        for end_index, timestamp in enumerate(timestamps):
-            window_start = timestamp - pd.Timedelta(hours=24)
-            while timestamps[start_index] < window_start:
-                start_index += 1
-
-            window_receivers = receivers[start_index : end_index + 1]
-            window_amounts = amounts[start_index : end_index + 1]
-            receiver = receivers[end_index]
-            amount = amounts[end_index]
-            lower = amount * 0.95
-            upper = amount * 1.05
-
-            features.loc[indexes[end_index], "sender_unique_receivers_24h"] = len(
-                set(window_receivers)
-            )
-            features.loc[indexes[end_index], "same_receiver_amount_count_24h"] = sum(
-                r == receiver and lower <= a <= upper
-                for r, a in zip(window_receivers, window_amounts)
-            )
+    first_sender_receiver_seen = features.groupby(
+        [sender_col, receiver_col],
+        sort=False,
+    ).cumcount().eq(0)
+    features["sender_unique_receivers_24h"] = (
+        first_sender_receiver_seen.astype(int)
+        .groupby(features[sender_col], sort=False)
+        .cumsum()
+    )
+    features["same_receiver_amount_count_24h"] = _rolling_group_values(
+        features,
+        group_cols=[sender_col, receiver_col],
+        timestamp_col=timestamp_col,
+        value_col=amount_col,
+        window="24h",
+        stat="count",
+    ).astype(int)
 
 
 def add_temporal_features(
@@ -393,7 +405,7 @@ def add_temporal_features(
         timestamp_col=timestamp_col,
     )
 
-    sender_avg_7d = features["amount_mean_7d"].replace(0, pd.NA)
+    sender_avg_7d = _zero_as_nan(features["amount_mean_7d"])
     features["amount_vs_sender_avg_7d"] = (
         features[amount_col] / sender_avg_7d
     ).fillna(0.0)
@@ -401,15 +413,15 @@ def add_temporal_features(
     features["sender_past_tx_count_7d"] = (features["tx_count_7d"] - 1).clip(lower=0)
     sender_past_amount_sum_7d = (features["amount_sum_7d"] - features[amount_col]).clip(lower=0)
     sender_past_avg_7d = (
-        sender_past_amount_sum_7d / features["sender_past_tx_count_7d"].replace(0, pd.NA)
+        sender_past_amount_sum_7d / _zero_as_nan(features["sender_past_tx_count_7d"])
     )
     features["amount_vs_sender_past_avg_7d"] = (
-        features[amount_col] / sender_past_avg_7d.replace(0, pd.NA)
+        features[amount_col] / _zero_as_nan(sender_past_avg_7d)
     ).fillna(1.0)
 
     # Z-score of current amount vs sender 7d stats. Catches HIGH_AMOUNT even when
     # the sender has a history (ratio alone can be misleading with small history).
-    amount_std_safe = features["amount_std_7d"].replace(0, pd.NA)
+    amount_std_safe = _zero_as_nan(features["amount_std_7d"])
     features["amount_zscore_sender_7d"] = (
         (features[amount_col] - features["amount_mean_7d"]) / amount_std_safe
     ).fillna(0.0).clip(-10.0, 10.0)
@@ -418,7 +430,7 @@ def add_temporal_features(
 
     if "fees" in features.columns:
         fees = pd.to_numeric(features["fees"], errors="coerce").fillna(0.0)
-        amount_denominator = features[amount_col].replace(0, pd.NA)
+        amount_denominator = _zero_as_nan(features[amount_col])
         features["fees_to_amount_ratio"] = (fees / amount_denominator).fillna(0.0)
     else:
         features["fees_to_amount_ratio"] = 0.0
@@ -517,7 +529,7 @@ def add_flow_ratio_features(
     events["outgoing_amount_24h"] = rolled["outgoing_amount"].to_numpy()
 
     sender_events = events[events["_is_sender_event"]].copy()
-    denominator = sender_events["outgoing_amount_24h"].replace(0, pd.NA)
+    denominator = _zero_as_nan(sender_events["outgoing_amount_24h"])
     sender_events["incoming_outgoing_ratio_24h"] = (
         sender_events["incoming_amount_24h"] / denominator
     ).fillna(0.0)

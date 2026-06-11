@@ -1,0 +1,619 @@
+{
+  "training_date": "2026-06-04T15:25:34.060162+00:00",
+  "dataset_path": "D:\\mauripay-analytics\\data\\generated\\mauripay_s_10k.csv",
+  "number_of_rows": 10000,
+  "training_rows": 10000,
+  "evaluation_rows": 10000,
+  "evaluation_mode": "training_data",
+  "test_size": 0.0,
+  "split_seed": 42,
+  "contamination": 0.02,
+  "feature_engineering": {
+    "input_columns": [
+      "transaction_id",
+      "timestamp",
+      "sender_id",
+      "receiver_id",
+      "amount",
+      "currency",
+      "transaction_type",
+      "channel",
+      "operator",
+      "sender_wilaya",
+      "receiver_wilaya",
+      "status",
+      "fees",
+      "is_ramadan",
+      "bill_provider",
+      "origin_country",
+      "is_anomaly",
+      "anomaly_type"
+    ],
+    "ignored_columns": [
+      "transaction_id",
+      "sender_id",
+      "receiver_id",
+      "is_anomaly",
+      "anomaly_type",
+      "timestamp"
+    ],
+    "numerical_columns_used": [
+      "sender_usual_distance_km_prior",
+      "sender_distance_gap_km",
+      "sender_distance_ratio_prior",
+      "sender_receiver_id_tx_count_prior",
+      "sender_receiver_id_share_prior",
+      "sender_receiver_is_new_receiver",
+      "sender_receiver_is_rare_receiver",
+      "sender_receiver_wilaya_tx_count_prior",
+      "sender_total_tx_count_prior",
+      "sender_receiver_wilaya_share_prior",
+      "sender_receiver_is_new_wilaya",
+      "sender_receiver_is_rare_wilaya",
+      "amount",
+      "fees",
+      "is_ramadan",
+      "tx_gap_seconds",
+      "tx_count_5min",
+      "amount_sum_5min",
+      "amount_mean_5min",
+      "amount_std_5min",
+      "tx_count_1h",
+      "amount_sum_1h",
+      "amount_mean_1h",
+      "amount_std_1h",
+      "tx_count_24h",
+      "amount_sum_24h",
+      "amount_mean_24h",
+      "amount_std_24h",
+      "tx_count_7d",
+      "amount_sum_7d",
+      "amount_mean_7d",
+      "amount_std_7d",
+      "tx_count_10min",
+      "sender_unique_receivers_1h",
+      "same_sender_receiver_count_1h",
+      "similar_amount_count_1h",
+      "sender_unique_receivers_24h",
+      "same_receiver_amount_count_24h",
+      "receiver_tx_count_1h",
+      "receiver_unique_senders_1h",
+      "receiver_amount_sum_1h",
+      "receiver_tx_count_24h",
+      "receiver_unique_senders_24h",
+      "receiver_amount_sum_24h",
+      "operator_failure_rate_1h",
+      "sender_wilaya_change_count_24h",
+      "amount_vs_sender_avg_7d",
+      "sender_past_tx_count_7d",
+      "amount_vs_sender_past_avg_7d",
+      "amount_zscore_sender_7d",
+      "amount_log",
+      "fees_to_amount_ratio",
+      "is_failed",
+      "hour",
+      "day_of_week",
+      "is_weekend",
+      "hour_sin",
+      "hour_cos",
+      "day_of_week_sin",
+      "day_of_week_cos",
+      "is_night",
+      "incoming_amount_24h",
+      "outgoing_amount_24h",
+      "incoming_outgoing_ratio_24h",
+      "sender_wilaya_code",
+      "receiver_wilaya_code",
+      "is_cross_wilaya",
+      "wilaya_distance_km",
+      "amount_to_sender_mean_24h",
+      "amount_to_sender_mean_7d",
+      "amount_to_flow_24h",
+      "fee_rate",
+      "is_zero_fee",
+      "is_failed_status",
+      "failed_zero_fee_signal",
+      "is_far_wilaya",
+      "high_distance_amount_signal",
+      "remote_receiver_signal",
+      "sender_receiver_is_new_remote_wilaya",
+      "sender_receiver_is_rare_remote_wilaya",
+      "sender_receiver_remote_history_gap",
+      "new_remote_amount_signal",
+      "rare_remote_amount_signal",
+      "new_wilaya_distance_signal",
+      "new_wilaya_distance_amount_signal",
+      "tx_count_1h_to_24h_ratio",
+      "tx_count_1h_to_7d_ratio",
+      "tx_count_5min_to_1h_ratio",
+      "amount_std_to_mean_1h",
+      "amount_std_to_mean_5min",
+      "sender_receiver_tx_count_5min",
+      "sender_receiver_amount_mean_5min",
+      "sender_receiver_amount_std_5min",
+      "sender_receiver_amount_std_to_mean_5min",
+      "same_receiver_similar_amount_5min",
+      "structuring_signal",
+      "high_frequency_signal",
+      "domain_risk_score",
+      "day_of_month",
+      "month"
+    ],
+    "categorical_columns_used": [
+      "currency",
+      "transaction_type",
+      "channel",
+      "operator",
+      "sender_wilaya",
+      "receiver_wilaya",
+      "status",
+      "bill_provider",
+      "origin_country"
+    ],
+    "datetime_columns": [
+      "timestamp"
+    ],
+    "derived_datetime_columns": [
+      "hour",
+      "day_of_week",
+      "day_of_month",
+      "month",
+      "is_weekend"
+    ],
+    "project_feature_layers": [
+      "temporal",
+      "flow_ratio",
+      "geographic",
+      "risk_signals",
+      "risk"
+    ],
+    "feature_names": [
+      "num__sender_usual_distance_km_prior",
+      "num__sender_distance_gap_km",
+      "num__sender_distance_ratio_prior",
+      "num__sender_receiver_id_tx_count_prior",
+      "num__sender_receiver_id_share_prior",
+      "num__sender_receiver_is_new_receiver",
+      "num__sender_receiver_is_rare_receiver",
+      "num__sender_receiver_wilaya_tx_count_prior",
+      "num__sender_total_tx_count_prior",
+      "num__sender_receiver_wilaya_share_prior",
+      "num__sender_receiver_is_new_wilaya",
+      "num__sender_receiver_is_rare_wilaya",
+      "num__amount",
+      "num__fees",
+      "num__is_ramadan",
+      "num__tx_gap_seconds",
+      "num__tx_count_5min",
+      "num__amount_sum_5min",
+      "num__amount_mean_5min",
+      "num__amount_std_5min",
+      "num__tx_count_1h",
+      "num__amount_sum_1h",
+      "num__amount_mean_1h",
+      "num__amount_std_1h",
+      "num__tx_count_24h",
+      "num__amount_sum_24h",
+      "num__amount_mean_24h",
+      "num__amount_std_24h",
+      "num__tx_count_7d",
+      "num__amount_sum_7d",
+      "num__amount_mean_7d",
+      "num__amount_std_7d",
+      "num__tx_count_10min",
+      "num__sender_unique_receivers_1h",
+      "num__same_sender_receiver_count_1h",
+      "num__similar_amount_count_1h",
+      "num__sender_unique_receivers_24h",
+      "num__same_receiver_amount_count_24h",
+      "num__receiver_tx_count_1h",
+      "num__receiver_unique_senders_1h",
+      "num__receiver_amount_sum_1h",
+      "num__receiver_tx_count_24h",
+      "num__receiver_unique_senders_24h",
+      "num__receiver_amount_sum_24h",
+      "num__operator_failure_rate_1h",
+      "num__sender_wilaya_change_count_24h",
+      "num__amount_vs_sender_avg_7d",
+      "num__sender_past_tx_count_7d",
+      "num__amount_vs_sender_past_avg_7d",
+      "num__amount_zscore_sender_7d",
+      "num__amount_log",
+      "num__fees_to_amount_ratio",
+      "num__is_failed",
+      "num__hour",
+      "num__day_of_week",
+      "num__is_weekend",
+      "num__hour_sin",
+      "num__hour_cos",
+      "num__day_of_week_sin",
+      "num__day_of_week_cos",
+      "num__is_night",
+      "num__incoming_amount_24h",
+      "num__outgoing_amount_24h",
+      "num__incoming_outgoing_ratio_24h",
+      "num__sender_wilaya_code",
+      "num__receiver_wilaya_code",
+      "num__is_cross_wilaya",
+      "num__wilaya_distance_km",
+      "num__amount_to_sender_mean_24h",
+      "num__amount_to_sender_mean_7d",
+      "num__amount_to_flow_24h",
+      "num__fee_rate",
+      "num__is_zero_fee",
+      "num__is_failed_status",
+      "num__failed_zero_fee_signal",
+      "num__is_far_wilaya",
+      "num__high_distance_amount_signal",
+      "num__remote_receiver_signal",
+      "num__sender_receiver_is_new_remote_wilaya",
+      "num__sender_receiver_is_rare_remote_wilaya",
+      "num__sender_receiver_remote_history_gap",
+      "num__new_remote_amount_signal",
+      "num__rare_remote_amount_signal",
+      "num__new_wilaya_distance_signal",
+      "num__new_wilaya_distance_amount_signal",
+      "num__tx_count_1h_to_24h_ratio",
+      "num__tx_count_1h_to_7d_ratio",
+      "num__tx_count_5min_to_1h_ratio",
+      "num__amount_std_to_mean_1h",
+      "num__amount_std_to_mean_5min",
+      "num__sender_receiver_tx_count_5min",
+      "num__sender_receiver_amount_mean_5min",
+      "num__sender_receiver_amount_std_5min",
+      "num__sender_receiver_amount_std_to_mean_5min",
+      "num__same_receiver_similar_amount_5min",
+      "num__structuring_signal",
+      "num__high_frequency_signal",
+      "num__domain_risk_score",
+      "num__day_of_month",
+      "num__month",
+      "cat__currency_MRU",
+      "cat__currency_USD",
+      "cat__currency_XOF",
+      "cat__transaction_type_AIRTIME",
+      "cat__transaction_type_BILL_PAY",
+      "cat__transaction_type_CASH_IN",
+      "cat__transaction_type_CASH_OUT",
+      "cat__transaction_type_MERCHANT",
+      "cat__transaction_type_TRANSFER",
+      "cat__channel_AGENT",
+      "cat__channel_APP",
+      "cat__channel_USSD",
+      "cat__operator_Amanty",
+      "cat__operator_Attijari Mobile",
+      "cat__operator_BCIpay",
+      "cat__operator_Bamis Digital",
+      "cat__operator_Bankily",
+      "cat__operator_BaridCash",
+      "cat__operator_Click",
+      "cat__operator_GazaPay",
+      "cat__operator_Masrvi",
+      "cat__operator_Moov Money",
+      "cat__operator_Rassidy \u0631\u0635\u064a\u062f\u064a",
+      "cat__operator_Sedad",
+      "cat__operator_bimbank Mobile",
+      "cat__sender_wilaya_Adrar",
+      "cat__sender_wilaya_Assaba",
+      "cat__sender_wilaya_Brakna",
+      "cat__sender_wilaya_Dakhlet Nouadhibou",
+      "cat__sender_wilaya_Gorgol",
+      "cat__sender_wilaya_Guidimakha",
+      "cat__sender_wilaya_Hodh El Chargui",
+      "cat__sender_wilaya_Hodh El Gharbi",
+      "cat__sender_wilaya_Inchiri",
+      "cat__sender_wilaya_Nouakchott-Nord",
+      "cat__sender_wilaya_Nouakchott-Ouest",
+      "cat__sender_wilaya_Nouakchott-Sud",
+      "cat__sender_wilaya_Tagant",
+      "cat__sender_wilaya_Tiris Zemmour",
+      "cat__sender_wilaya_Trarza",
+      "cat__receiver_wilaya_Adrar",
+      "cat__receiver_wilaya_Assaba",
+      "cat__receiver_wilaya_Brakna",
+      "cat__receiver_wilaya_Dakhlet Nouadhibou",
+      "cat__receiver_wilaya_Gorgol",
+      "cat__receiver_wilaya_Guidimakha",
+      "cat__receiver_wilaya_Hodh El Chargui",
+      "cat__receiver_wilaya_Hodh El Gharbi",
+      "cat__receiver_wilaya_Inchiri",
+      "cat__receiver_wilaya_Nouakchott-Nord",
+      "cat__receiver_wilaya_Nouakchott-Ouest",
+      "cat__receiver_wilaya_Nouakchott-Sud",
+      "cat__receiver_wilaya_Tagant",
+      "cat__receiver_wilaya_Tiris Zemmour",
+      "cat__receiver_wilaya_Trarza",
+      "cat__status_FAILED",
+      "cat__status_SUCCESS",
+      "cat__bill_provider_CHINGUITEL",
+      "cat__bill_provider_MATTEL",
+      "cat__bill_provider_MAURITEL",
+      "cat__bill_provider_SNDE",
+      "cat__bill_provider_SOMELEC",
+      "cat__bill_provider_UNKNOWN",
+      "cat__origin_country_ES",
+      "cat__origin_country_FR",
+      "cat__origin_country_UNKNOWN",
+      "cat__origin_country_US"
+    ]
+  },
+  "validation": {
+    "columns": {
+      "missing_columns": [],
+      "extra_columns": [],
+      "is_valid": true
+    },
+    "pydantic_rows": {
+      "valid_count": 10000,
+      "invalid_count": 0,
+      "sample_errors": [],
+      "is_valid": true
+    }
+  },
+  "model_parameters": {
+    "isolation_forest": {
+      "n_estimators": 100,
+      "contamination": 0.02,
+      "random_state": 42,
+      "max_samples": "auto"
+    },
+    "lof": {
+      "n_neighbors": 20,
+      "contamination": 0.02,
+      "metric": "minkowski",
+      "novelty": true
+    },
+    "autoencoder": {
+      "encoding_dim": 8,
+      "hidden_dims": [
+        32,
+        16
+      ],
+      "learning_rate": 0.001,
+      "epochs": 50,
+      "batch_size": 128,
+      "threshold_percentile": 96.0,
+      "random_state": 42,
+      "device": null,
+      "threshold": 4.8396710205076205,
+      "input_dim": 166,
+      "training_loss_last": 0.16490266915417454,
+      "training_loss_epochs": 50
+    }
+  },
+  "models": {
+    "isolation_forest": "D:\\mauripay-analytics\\backend\\string\\isolation_forest.joblib",
+    "lof": "D:\\mauripay-analytics\\backend\\string\\lof.joblib",
+    "autoencoder": "D:\\mauripay-analytics\\backend\\string\\autoencoder.joblib"
+  },
+  "evaluations": {
+    "isolation_forest": {
+      "precision": 0.9419642857142857,
+      "recall": 0.7771639042357275,
+      "f1_score": 0.851664984863774,
+      "accuracy": 0.9853,
+      "confusion_matrix": [
+        [
+          9431,
+          26
+        ],
+        [
+          121,
+          422
+        ]
+      ],
+      "roc_auc": 0.9121120294223093,
+      "label_column": "is_anomaly",
+      "by_anomaly_type": {
+        "HIGH_AMOUNT": {
+          "precision": 0.17857142857142858,
+          "recall": 0.9523809523809523,
+          "f1_score": 0.3007518796992481,
+          "accuracy": 0.9628,
+          "confusion_matrix": [
+            [
+              9548,
+              368
+            ],
+            [
+              4,
+              80
+            ]
+          ],
+          "roc_auc": 0.8114627153806258,
+          "support": 84
+        },
+        "HIGH_FREQUENCY": {
+          "precision": 0.4174107142857143,
+          "recall": 0.8461538461538461,
+          "f1_score": 0.5590433482810164,
+          "accuracy": 0.9705,
+          "confusion_matrix": [
+            [
+              9518,
+              261
+            ],
+            [
+              34,
+              187
+            ]
+          ],
+          "roc_auc": 0.9735142115873936,
+          "support": 221
+        },
+        "OPERATOR_OUTAGE": {
+          "precision": 0.109375,
+          "recall": 1.0,
+          "f1_score": 0.19718309859154928,
+          "accuracy": 0.9601,
+          "confusion_matrix": [
+            [
+              9552,
+              399
+            ],
+            [
+              0,
+              49
+            ]
+          ],
+          "roc_auc": 0.9262262637946346,
+          "support": 49
+        },
+        "STRUCTURING": {
+          "precision": 0.17857142857142858,
+          "recall": 0.5031446540880503,
+          "f1_score": 0.26359143327841844,
+          "accuracy": 0.9553,
+          "confusion_matrix": [
+            [
+              9473,
+              368
+            ],
+            [
+              79,
+              80
+            ]
+          ],
+          "roc_auc": 0.8600930901970258,
+          "support": 159
+        },
+        "UNUSUAL_LOCATION": {
+          "precision": 0.05803571428571429,
+          "recall": 0.8666666666666667,
+          "f1_score": 0.1087866108786611,
+          "accuracy": 0.9574,
+          "confusion_matrix": [
+            [
+              9548,
+              422
+            ],
+            [
+              4,
+              26
+            ]
+          ],
+          "roc_auc": 0.708007355399532,
+          "support": 30
+        }
+      }
+    },
+    "lof": {
+      "precision": 0.7186440677966102,
+      "recall": 0.7808471454880295,
+      "f1_score": 0.7484554280670785,
+      "accuracy": 0.9715,
+      "confusion_matrix": [
+        [
+          9291,
+          166
+        ],
+        [
+          119,
+          424
+        ]
+      ],
+      "roc_auc": 0.49216313210653395,
+      "label_column": "is_anomaly",
+      "by_anomaly_type": {
+        "HIGH_AMOUNT": {
+          "precision": 0.13559322033898305,
+          "recall": 0.9523809523809523,
+          "f1_score": 0.23738872403560832,
+          "accuracy": 0.9486,
+          "confusion_matrix": [
+            [
+              9406,
+              510
+            ],
+            [
+              4,
+              80
+            ]
+          ],
+          "roc_auc": 0.7294187844560978,
+          "support": 84
+        },
+        "HIGH_FREQUENCY": {
+          "precision": 0.31864406779661014,
+          "recall": 0.8506787330316742,
+          "f1_score": 0.4636251541307028,
+          "accuracy": 0.9565,
+          "confusion_matrix": [
+            [
+              9377,
+              402
+            ],
+            [
+              33,
+              188
+            ]
+          ],
+          "roc_auc": 0.4361803088065247,
+          "support": 221
+        },
+        "OPERATOR_OUTAGE": {
+          "precision": 0.08305084745762711,
+          "recall": 1.0,
+          "f1_score": 0.15336463223787167,
+          "accuracy": 0.9459,
+          "confusion_matrix": [
+            [
+              9410,
+              541
+            ],
+            [
+              0,
+              49
+            ]
+          ],
+          "roc_auc": 0.3856509139682403,
+          "support": 49
+        },
+        "STRUCTURING": {
+          "precision": 0.13728813559322034,
+          "recall": 0.5094339622641509,
+          "f1_score": 0.2162883845126836,
+          "accuracy": 0.9413,
+          "confusion_matrix": [
+            [
+              9332,
+              509
+            ],
+            [
+              78,
+              81
+            ]
+          ],
+          "roc_auc": 0.44744263986057564,
+          "support": 159
+        },
+        "UNUSUAL_LOCATION": {
+          "precision": 0.04406779661016949,
+          "recall": 0.8666666666666667,
+          "f1_score": 0.08387096774193549,
+          "accuracy": 0.9432,
+          "confusion_matrix": [
+            [
+              9406,
+              564
+            ],
+            [
+              4,
+              26
+            ]
+          ],
+          "roc_auc": 0.64905382815112,
+          "support": 30
+        }
+      }
+    }
+  },
+  "preprocessor": "D:\\mauripay-analytics\\backend\\string\\preprocessor.joblib",
+  "label_column_used_for_evaluation": "is_anomaly",
+  "autoencoder": {
+    "preprocessor": "D:\\mauripay-analytics\\backend\\string\\autoencoder_preprocessor.joblib",
+    "metadata": "D:\\mauripay-analytics\\backend\\string\\metadata_autoencoder.json",
+    "evaluation": "D:\\mauripay-analytics\\backend\\string\\evaluation_autoencoder.json",
+    "normal_rows_used_for_training": 9457
+  }
+}

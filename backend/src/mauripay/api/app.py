@@ -16,6 +16,7 @@ def create_app() -> FastAPI:
         title="MauriPay Analytics API",
         version="0.2.0",
         description="Backend API for MauriPay synthetic data and anomaly detection.",
+        openapi_version="3.1.0",
     )
     app.include_router(ingest_router)
     app.include_router(detect_router)
