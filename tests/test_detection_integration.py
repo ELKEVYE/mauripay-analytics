@@ -148,6 +148,7 @@ class DetectionIntegrationTests(unittest.TestCase):
                 n_neighbors=10,
                 contamination=0.05,
                 test_size=0.25,
+                lof_max_train_rows=30,
             )
 
             self.assertTrue((model_dir / "isolation_forest.joblib").exists())
@@ -155,6 +156,7 @@ class DetectionIntegrationTests(unittest.TestCase):
             self.assertTrue((model_dir / "preprocessor.joblib").exists())
             self.assertEqual(metadata["number_of_rows"], len(dataframe))
             self.assertEqual(metadata["evaluation_mode"], "holdout")
+            self.assertEqual(metadata["model_parameters"]["lof"]["training_rows"], 30)
             self.assertIn("by_anomaly_type", metadata["evaluations"]["isolation_forest"])
             self.assertTrue((output_dir / "evaluation_isolation_forest.json").exists())
             self.assertTrue((output_dir / "evaluation_lof.json").exists())
@@ -170,6 +172,20 @@ class DetectionIntegrationTests(unittest.TestCase):
             self.assertIn("anomaly_label", predictions.columns)
             self.assertIn("anomaly_score", predictions.columns)
             self.assertIn("algorithm", predictions.columns)
+
+            ensemble_output_path = predict_anomalies(
+                algorithm="ensemble",
+                data_path=data_path,
+                model_dir=model_dir,
+                output=output_dir / "ensemble_predictions.csv",
+            )
+            ensemble_predictions = pd.read_csv(ensemble_output_path)
+
+            self.assertIn("isolation_forest_label", ensemble_predictions.columns)
+            self.assertIn("lof_label", ensemble_predictions.columns)
+            self.assertIn("ensemble_vote_count", ensemble_predictions.columns)
+            self.assertEqual(set(ensemble_predictions["algorithm"]), {"ensemble"})
+            self.assertTrue((output_dir / "evaluation_ensemble.json").exists())
 
     def test_tuning_writes_summary_and_results(self):
         dataframe = sample_dataframe()
@@ -251,11 +267,13 @@ class DetectionIntegrationTests(unittest.TestCase):
                 self.assertTrue(expected_columns <= set(predictions.columns))
                 self.assertEqual(set(predictions["algorithm"]), {algorithm})
                 self.assertTrue(set(predictions["anomaly_label"].unique()) <= {0, 1})
+                self.assertIn("business_rule_label", predictions.columns)
+                self.assertIn("business_rule_reasons", predictions.columns)
 
                 if algorithm == "autoencoder":
                     self.assertIn("autoencoder_label", predictions.columns)
-                    self.assertIn("business_rule_label", predictions.columns)
-                    self.assertIn("business_rule_reasons", predictions.columns)
+                else:
+                    self.assertIn(f"{algorithm}_model_label", predictions.columns)
 
 
 if __name__ == "__main__":

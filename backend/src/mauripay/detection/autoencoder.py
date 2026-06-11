@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from importlib import import_module
 from pathlib import Path
 from typing import Any, Self
@@ -188,7 +189,15 @@ class AutoencoderDetector(BaseDetector):
 
         self.training_loss_ = []
         self.model.train()
-        for _ in range(self.epochs):
+        print(
+            "Autoencoder training started: "
+            f"samples={len(dataset)}, features={self.input_dim_}, "
+            f"epochs={self.epochs}, batch_size={self.batch_size}, "
+            f"batches_per_epoch={len(loader)}, device={device}",
+            flush=True,
+        )
+        for epoch_index in range(self.epochs):
+            epoch_started_at = time.perf_counter()
             epoch_loss = 0.0
             for (batch,) in loader:
                 batch = batch.to(device)
@@ -198,8 +207,16 @@ class AutoencoderDetector(BaseDetector):
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item() * batch.size(0)
-            self.training_loss_.append(epoch_loss / len(dataset))
+            average_loss = epoch_loss / len(dataset)
+            self.training_loss_.append(average_loss)
+            elapsed_seconds = time.perf_counter() - epoch_started_at
+            print(
+                f"Epoch {epoch_index + 1}/{self.epochs} completed "
+                f"- loss={average_loss:.6f} - {elapsed_seconds:.1f}s",
+                flush=True,
+            )
 
+        print("Computing reconstruction threshold...", flush=True)
         errors = self._reconstruction_errors(array)
         self.threshold_ = float(np.percentile(errors, self.threshold_percentile))
         return self

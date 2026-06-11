@@ -9,6 +9,15 @@ REMOTE_WILAYAS = {
     "Tiris Zemmour",
 }
 
+HIGH_AMOUNT_LIMITS_BY_TYPE = {
+    "AIRTIME": 5_000.0,
+    "BILL_PAY": 10_000.0,
+    "MERCHANT": 50_000.0,
+    "TRANSFER": 100_000.0,
+    "CASH_OUT": 100_000.0,
+    "CASH_IN": 100_000.0,
+}
+
 
 def _numeric(series: pd.Series, default: float = 0.0) -> pd.Series:
     return pd.to_numeric(series, errors="coerce").fillna(default)
@@ -314,14 +323,53 @@ def _unusual_location_mask(dataframe: pd.DataFrame) -> pd.Series:
     )
 
 
+def _high_amount_type_limit_mask(dataframe: pd.DataFrame) -> pd.Series:
+    required = {"transaction_type", "amount"}
+    if not required <= set(dataframe.columns):
+        return pd.Series(False, index=dataframe.index)
+
+    transaction_type = dataframe["transaction_type"].fillna("").astype(str).str.upper()
+    amount = _numeric(dataframe["amount"])
+    limits = transaction_type.map(HIGH_AMOUNT_LIMITS_BY_TYPE).fillna(float("inf"))
+    return amount.ge(limits).astype(bool)
+
+
+def _receiver_profile_location_mismatch_mask(dataframe: pd.DataFrame) -> pd.Series:
+    required = {"receiver_id", "receiver_wilaya", "sender_id", "sender_wilaya"}
+    if not required <= set(dataframe.columns):
+        return pd.Series(False, index=dataframe.index)
+
+    source = dataframe.reset_index(drop=True).copy()
+    sender_profile = (
+        source.groupby("sender_id")["sender_wilaya"]
+        .agg(lambda values: values.mode().iloc[0] if not values.mode().empty else None)
+        .rename("receiver_profile_wilaya")
+    )
+    sender_profile_support = (
+        source.groupby("sender_id").size().rename("receiver_profile_support")
+    )
+    receiver_profile = pd.concat([sender_profile, sender_profile_support], axis=1)
+    profiled = source.join(receiver_profile, on="receiver_id")
+
+    receiver_wilaya = profiled["receiver_wilaya"].fillna("").astype(str)
+    profile_wilaya = profiled["receiver_profile_wilaya"].fillna("").astype(str)
+    profile_support = _numeric(profiled["receiver_profile_support"])
+
+    remote_receiver = receiver_wilaya.isin(REMOTE_WILAYAS)
+    profile_available = profile_support.ge(1) & profile_wilaya.ne("")
+    profile_mismatch = receiver_wilaya.ne(profile_wilaya)
+
+    return (profile_available & remote_receiver & profile_mismatch).astype(bool)
+
+
 def apply_business_rules(
     dataframe: pd.DataFrame,
     detector_result: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Add conservative business-rule flags to autoencoder predictions.
+    """Add conservative business-rule flags to detector predictions.
 
-    The autoencoder label is preserved in ``autoencoder_label``. Business rules
-    can only add an anomaly flag, not remove one.
+    The original detector label is preserved. Business rules can only add an
+    anomaly flag, not remove one.
     """
 
     result = detector_result.reset_index(drop=True).copy()
@@ -330,7 +378,17 @@ def apply_business_rules(
     if "anomaly_label" not in result.columns:
         raise ValueError("detector_result must contain anomaly_label")
 
-    result["autoencoder_label"] = result["anomaly_label"].astype(int)
+    algorithm = (
+        str(result["algorithm"].dropna().iloc[0])
+        if "algorithm" in result.columns and not result["algorithm"].dropna().empty
+        else "detector"
+    )
+    model_label_column = (
+        "autoencoder_label"
+        if algorithm == "autoencoder"
+        else f"{algorithm}_model_label"
+    )
+    result[model_label_column] = result["anomaly_label"].astype(int)
     reasons = _empty_reasons(result.index)
 
     failed_zero_fee = _failed_zero_fee_mask(source)
@@ -341,6 +399,13 @@ def apply_business_rules(
         reasons,
         high_amount_sender_profile,
         "high_amount_sender_profile",
+    )
+
+    high_amount_type_limit = _high_amount_type_limit_mask(source)
+    reasons = _append_reason(
+        reasons,
+        high_amount_type_limit,
+        "high_amount_type_limit",
     )
 
     high_frequency = _high_frequency_mask(source)
@@ -355,10 +420,17 @@ def apply_business_rules(
     unusual_location = _unusual_location_mask(source)
     reasons = _append_reason(reasons, unusual_location, "unusual_remote_location")
 
+    receiver_profile_location_mismatch = _receiver_profile_location_mismatch_mask(source)
+    reasons = _append_reason(
+        reasons,
+        receiver_profile_location_mismatch,
+        "receiver_profile_location_mismatch",
+    )
+
     result["business_rule_reasons"] = reasons
     result["business_rule_label"] = reasons.ne("").astype(int)
     result["anomaly_label"] = (
-        result["autoencoder_label"].astype(int) | result["business_rule_label"].astype(int)
+        result[model_label_column].astype(int) | result["business_rule_label"].astype(int)
     ).astype(int)
     return result
 

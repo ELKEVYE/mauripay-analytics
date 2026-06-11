@@ -1,0 +1,158 @@
+{
+  "label_column": "is_anomaly",
+  "total_rows": 10000,
+  "error_rows": 111,
+  "false_positives": 65,
+  "false_negatives": 46,
+  "error_file": "D:\\mauripay-analytics\\backend\\string\\autoencoder_classification_errors.csv",
+  "false_positive_rate_on_normal": 0.006873215607486518,
+  "false_negative_rate_on_anomalies": 0.0847145488029466,
+  "score_summary": {
+    "correct": {
+      "count": 9889.0,
+      "mean": 312.35852820707476,
+      "std": 2348.146584601225,
+      "min": 0.033217787742614746,
+      "25%": 0.07643469423055649,
+      "50%": 0.10202056169509888,
+      "75%": 0.1659923493862152,
+      "max": 50119.2421875
+    },
+    "false_positive": {
+      "count": 65.0,
+      "mean": 34.71735815222447,
+      "std": 176.160702667849,
+      "min": 0.1478150486946106,
+      "25%": 0.28813156485557556,
+      "50%": 7.1112823486328125,
+      "75%": 13.569100379943848,
+      "max": 1418.925048828125
+    },
+    "false_negative": {
+      "count": 46.0,
+      "mean": 0.15347118570428828,
+      "std": 0.12077993512946741,
+      "min": 0.04642041027545929,
+      "25%": 0.06975325383245945,
+      "50%": 0.10651566088199615,
+      "75%": 0.18606115132570267,
+      "max": 0.6511403322219849
+    }
+  },
+  "false_positive_top_values": {
+    "anomaly_type": {
+      "NONE": 65
+    },
+    "transaction_type": {
+      "TRANSFER": 34,
+      "CASH_OUT": 14,
+      "BILL_PAY": 7,
+      "CASH_IN": 5,
+      "MERCHANT": 3,
+      "AIRTIME": 2
+    },
+    "channel": {
+      "USSD": 39,
+      "APP": 20,
+      "AGENT": 6
+    },
+    "operator": {
+      "Bankily": 17,
+      "Masrvi": 14,
+      "Click": 6,
+      "Sedad": 5,
+      "Attijari Mobile": 4,
+      "bimbank Mobile": 4,
+      "Rassidy \u0631\u0635\u064a\u062f\u064a": 3,
+      "BCIpay": 3,
+      "Moov Money": 3,
+      "Bamis Digital": 2
+    },
+    "status": {
+      "SUCCESS": 65
+    },
+    "sender_wilaya": {
+      "Nouakchott-Nord": 18,
+      "Nouakchott-Ouest": 14,
+      "Nouakchott-Sud": 10,
+      "Dakhlet Nouadhibou": 10,
+      "Gorgol": 4,
+      "Guidimakha": 3,
+      "Trarza": 2,
+      "Assaba": 2,
+      "Hodh El Chargui": 1,
+      "Brakna": 1
+    },
+    "receiver_wilaya": {
+      "Dakhlet Nouadhibou": 23,
+      "Nouakchott-Ouest": 8,
+      "Trarza": 7,
+      "Nouakchott-Sud": 6,
+      "Guidimakha": 4,
+      "Tiris Zemmour": 3,
+      "Nouakchott-Nord": 3,
+      "Gorgol": 3,
+      "Hodh El Chargui": 3,
+      "Inchiri": 2
+    }
+  },
+  "false_negative_top_values": {
+    "anomaly_type": {
+      "STRUCTURING": 26,
+      "HIGH_FREQUENCY": 12,
+      "UNUSUAL_LOCATION": 4,
+      "HIGH_AMOUNT": 4
+    },
+    "transaction_type": {
+      "TRANSFER": 36,
+      "MERCHANT": 7,
+      "AIRTIME": 2,
+      "CASH_IN": 1
+    },
+    "channel": {
+      "USSD": 36,
+      "APP": 8,
+      "AGENT": 2
+    },
+    "operator": {
+      "Bankily": 9,
+      "bimbank Mobile": 7,
+      "Masrvi": 6,
+      "Sedad": 5,
+      "Moov Money": 5,
+      "Click": 4,
+      "Attijari Mobile": 3,
+      "Rassidy \u0631\u0635\u064a\u062f\u064a": 2,
+      "BaridCash": 2,
+      "Bamis Digital": 1
+    },
+    "status": {
+      "SUCCESS": 46
+    },
+    "sender_wilaya": {
+      "Nouakchott-Sud": 12,
+      "Nouakchott-Nord": 11,
+      "Nouakchott-Ouest": 8,
+      "Dakhlet Nouadhibou": 5,
+      "Brakna": 2,
+      "Guidimakha": 2,
+      "Trarza": 2,
+      "Hodh El Gharbi": 1,
+      "Gorgol": 1,
+      "Hodh El Chargui": 1
+    },
+    "receiver_wilaya": {
+      "Nouakchott-Sud": 13,
+      "Nouakchott-Nord": 10,
+      "Dakhlet Nouadhibou": 5,
+      "Nouakchott-Ouest": 4,
+      "Guidimakha": 3,
+      "Trarza": 2,
+      "Hodh El Chargui": 2,
+      "Hodh El Gharbi": 2,
+      "Inchiri": 2,
+      "Tiris Zemmour": 1
+    }
+  },
+  "analysis_file": "D:\\mauripay-analytics\\backend\\string\\autoencoder_error_analysis.json"
+}

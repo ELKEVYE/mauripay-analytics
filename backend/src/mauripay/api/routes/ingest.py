@@ -1,28 +1,25 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from shutil import copyfileobj
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from mauripay.api.routes._utils import backend_path
+from mauripay.api.schemas import (
+    GenerateDatasetRequest,
+    GenerateDatasetResponse,
+    HealthResponse,
+    IngestResponse,
+)
 from mauripay.detection.io import project_backend_root
+from mauripay.ingestion.common import IngestionError, IngestionResult
+from mauripay.ingestion.loader import load_transactions
 from mauripay.synthetic.exporters import export_transactions
 from mauripay.synthetic.generator import compute_basic_stats, generate_transactions
 
 router = APIRouter(prefix="/ingest", tags=["ingestion"])
-
-
-class GenerateDatasetRequest(BaseModel):
-    rows: int = Field(10_000, gt=0, le=1_000_000)
-    output_path: str = Field("data/generated/api_generated_10k.csv")
-    accounts: int = Field(1_000, gt=1)
-    start_date: str = "2026-01-01"
-    end_date: str = "2026-12-31"
-    seed: int | None = 42
-    anomaly_rate: float = Field(0.02, ge=0, le=1)
-    tontine_rate: float = Field(0.001, ge=0, le=1)
-    structuring_rate: float = Field(0.003, ge=0, le=1)
-    high_frequency_rate: float = Field(0.002, ge=0, le=1)
 
 
 def _backend_path(path: str | Path) -> Path:
@@ -32,13 +29,72 @@ def _backend_path(path: str | Path) -> Path:
     return project_backend_root() / candidate
 
 
-@router.get("/health")
-def ingestion_health() -> dict[str, str]:
+def _serialize_error(error: IngestionError) -> dict[str, object]:
+    return {
+        "source": error.source,
+        "row_number": error.row_number,
+        "errors": error.errors,
+        "payload": error.payload,
+    }
+
+
+def _write_errors_file(result: IngestionResult, filename: str) -> str | None:
+    if not result.errors:
+        return None
+
+    reports_dir = project_backend_root() / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    safe_stem = Path(filename).stem or "ingestion"
+    errors_path = reports_dir / f"{safe_stem}_ingestion_errors.json"
+    payload = [_serialize_error(error) for error in result.errors]
+    errors_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
+    return str(errors_path.relative_to(project_backend_root()))
+
+
+@router.get("/health", response_model=HealthResponse)
+def ingestion_health() -> HealthResponse:
     return {"status": "ready", "module": "ingest"}
 
 
-@router.post("/generate")
-def generate_dataset(request: GenerateDatasetRequest) -> dict[str, object]:
+@router.post("", response_model=IngestResponse)
+def ingest_file(file: UploadFile = File(...)) -> IngestResponse:
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in {".csv", ".json", ".jsonl", ".parquet"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file format. Use CSV, JSON, JSONL or Parquet.",
+        )
+
+    uploads_dir = backend_path("data/uploads")
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    saved_path = uploads_dir / Path(file.filename or f"upload{suffix}").name
+
+    try:
+        with saved_path.open("wb") as output:
+            copyfileobj(file.file, output)
+        result = load_transactions(saved_path, report=True)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        file.file.close()
+
+    if not isinstance(result, IngestionResult):
+        raise HTTPException(status_code=500, detail="Unexpected ingestion result")
+
+    errors_file = _write_errors_file(result, saved_path.name)
+    return {
+        "rows": result.total_rows,
+        "valid_rows": result.valid_rows,
+        "invalid_rows": result.invalid_rows,
+        "errors_file": errors_file,
+    }
+
+
+@router.post("/generate", response_model=GenerateDatasetResponse)
+def generate_dataset(request: GenerateDatasetRequest) -> GenerateDatasetResponse:
     output_path = _backend_path(request.output_path)
 
     try:

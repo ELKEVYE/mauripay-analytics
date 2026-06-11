@@ -5,7 +5,7 @@ import argparse
 from mauripay.detection.evaluate_autoencoder_thresholds import (
     evaluate_autoencoder_thresholds,
 )
-from mauripay.detection.predict import predict_anomalies
+from mauripay.detection.predict import PREDICTION_MODELS, predict_anomalies
 from mauripay.detection.train import train_models
 from mauripay.detection.tune import tune_models
 from mauripay.detection.train_autoencoder import train_autoencoder
@@ -26,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--n-estimators", type=int, default=100)
     train_parser.add_argument("--n-neighbors", type=int, default=20)
     train_parser.add_argument("--test-size", type=float, default=0.0)
+    train_parser.add_argument(
+        "--lof-max-train-rows",
+        type=int,
+        default=20000,
+        help="Maximum rows used to fit LOF; use 0 to train LOF on all rows.",
+    )
     train_parser.add_argument(
         "--include-autoencoder",
         action="store_true",
@@ -77,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     predict_parser.add_argument(
         "--model",
         required=True,
-        choices=["isolation_forest", "lof", "autoencoder"],
+        choices=PREDICTION_MODELS,
     )
     predict_parser.add_argument("--data", required=True)
     predict_parser.add_argument("--model-dir", default=None)
@@ -99,6 +105,7 @@ def main() -> None:
             n_neighbors=args.n_neighbors,
             test_size=args.test_size,
             include_autoencoder=args.include_autoencoder,
+            lof_max_train_rows=args.lof_max_train_rows or None,
             autoencoder_epochs=args.autoencoder_epochs,
             autoencoder_batch_size=args.autoencoder_batch_size,
             autoencoder_threshold_percentile=args.autoencoder_threshold_percentile,

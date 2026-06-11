@@ -496,6 +496,29 @@ class AutoencoderTrainingHelpersTests(unittest.TestCase):
         self.assertEqual(adjusted["anomaly_label"].tolist()[-1], 1)
         self.assertIn("high_amount_sender_profile", adjusted["business_rule_reasons"].iloc[-1])
 
+    def test_business_rules_flag_high_amount_type_limit(self):
+        dataframe = pd.DataFrame(
+            {
+                "transaction_type": ["BILL_PAY", "BILL_PAY", "AIRTIME"],
+                "amount": [7_500, 25_000, 8_000],
+                "fees": [75, 250, 80],
+                "status": ["SUCCESS"] * 3,
+            }
+        )
+        result = pd.DataFrame(
+            {
+                "anomaly_label": [0, 0, 0],
+                "anomaly_score": [0.1, 0.1, 0.1],
+                "algorithm": ["isolation_forest"] * 3,
+            }
+        )
+
+        adjusted = apply_business_rules(dataframe, result)
+
+        self.assertEqual(adjusted["anomaly_label"].tolist(), [0, 1, 1])
+        self.assertIn("high_amount_type_limit", adjusted["business_rule_reasons"].iloc[1])
+        self.assertIn("high_amount_type_limit", adjusted["business_rule_reasons"].iloc[2])
+
     def test_business_rules_do_not_force_new_far_sender_location(self):
         dataframe = pd.DataFrame(
             {
@@ -560,6 +583,46 @@ class AutoencoderTrainingHelpersTests(unittest.TestCase):
 
         self.assertEqual(adjusted["anomaly_label"].tolist()[-1], 1)
         self.assertIn("unusual_remote_location", adjusted["business_rule_reasons"].iloc[-1])
+
+    def test_business_rules_flag_receiver_profile_location_mismatch(self):
+        dataframe = pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2026-01-01", periods=4, freq="h"),
+                "sender_id": ["A", "B", "C", "A"],
+                "receiver_id": ["B", "A", "A", "B"],
+                "amount": [10_000, 11_000, 12_000, 15_000],
+                "fees": [100, 110, 120, 150],
+                "status": ["SUCCESS"] * 4,
+                "transaction_type": ["TRANSFER"] * 4,
+                "sender_wilaya": [
+                    "Nouakchott-Ouest",
+                    "Nouakchott-Sud",
+                    "Nouakchott-Nord",
+                    "Nouakchott-Ouest",
+                ],
+                "receiver_wilaya": [
+                    "Nouakchott-Sud",
+                    "Nouakchott-Ouest",
+                    "Nouakchott-Ouest",
+                    "Dakhlet Nouadhibou",
+                ],
+            }
+        )
+        result = pd.DataFrame(
+            {
+                "anomaly_label": [0, 0, 0, 0],
+                "anomaly_score": [0.1, 0.1, 0.1, 0.1],
+                "algorithm": ["autoencoder"] * 4,
+            }
+        )
+
+        adjusted = apply_business_rules(dataframe, result)
+
+        self.assertEqual(adjusted["anomaly_label"].tolist()[-1], 1)
+        self.assertIn(
+            "receiver_profile_location_mismatch",
+            adjusted["business_rule_reasons"].iloc[-1],
+        )
 
     def test_risk_features_include_client_sequence_context(self):
         dataframe = pd.DataFrame(

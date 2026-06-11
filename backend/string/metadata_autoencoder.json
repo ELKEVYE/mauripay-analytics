@@ -1,0 +1,1267 @@
+{
+  "training_date": "2026-06-04T15:43:55.920522+00:00",
+  "dataset_path": "D:\\mauripay-analytics\\data\\generated\\mauripay_s_10k.csv",
+  "number_of_rows": 10000,
+  "normal_rows_used_for_training": 9457,
+  "label_column_used_for_training": "is_anomaly",
+  "model": "D:\\mauripay-analytics\\backend\\string\\autoencoder.joblib",
+  "preprocessor": "D:\\mauripay-analytics\\backend\\string\\autoencoder_preprocessor.joblib",
+  "evaluation": "D:\\mauripay-analytics\\backend\\string\\evaluation_autoencoder.json",
+  "error_analysis": {
+    "label_column": "is_anomaly",
+    "total_rows": 10000,
+    "error_rows": 111,
+    "false_positives": 65,
+    "false_negatives": 46,
+    "error_file": "D:\\mauripay-analytics\\backend\\string\\autoencoder_classification_errors.csv",
+    "false_positive_rate_on_normal": 0.006873215607486518,
+    "false_negative_rate_on_anomalies": 0.0847145488029466,
+    "score_summary": {
+      "correct": {
+        "count": 9889.0,
+        "mean": 312.35852820707476,
+        "std": 2348.146584601225,
+        "min": 0.033217787742614746,
+        "25%": 0.07643469423055649,
+        "50%": 0.10202056169509888,
+        "75%": 0.1659923493862152,
+        "max": 50119.2421875
+      },
+      "false_positive": {
+        "count": 65.0,
+        "mean": 34.71735815222447,
+        "std": 176.160702667849,
+        "min": 0.1478150486946106,
+        "25%": 0.28813156485557556,
+        "50%": 7.1112823486328125,
+        "75%": 13.569100379943848,
+        "max": 1418.925048828125
+      },
+      "false_negative": {
+        "count": 46.0,
+        "mean": 0.15347118570428828,
+        "std": 0.12077993512946741,
+        "min": 0.04642041027545929,
+        "25%": 0.06975325383245945,
+        "50%": 0.10651566088199615,
+        "75%": 0.18606115132570267,
+        "max": 0.6511403322219849
+      }
+    },
+    "false_positive_top_values": {
+      "anomaly_type": {
+        "NONE": 65
+      },
+      "transaction_type": {
+        "TRANSFER": 34,
+        "CASH_OUT": 14,
+        "BILL_PAY": 7,
+        "CASH_IN": 5,
+        "MERCHANT": 3,
+        "AIRTIME": 2
+      },
+      "channel": {
+        "USSD": 39,
+        "APP": 20,
+        "AGENT": 6
+      },
+      "operator": {
+        "Bankily": 17,
+        "Masrvi": 14,
+        "Click": 6,
+        "Sedad": 5,
+        "Attijari Mobile": 4,
+        "bimbank Mobile": 4,
+        "Rassidy \u0631\u0635\u064a\u062f\u064a": 3,
+        "BCIpay": 3,
+        "Moov Money": 3,
+        "Bamis Digital": 2
+      },
+      "status": {
+        "SUCCESS": 65
+      },
+      "sender_wilaya": {
+        "Nouakchott-Nord": 18,
+        "Nouakchott-Ouest": 14,
+        "Nouakchott-Sud": 10,
+        "Dakhlet Nouadhibou": 10,
+        "Gorgol": 4,
+        "Guidimakha": 3,
+        "Trarza": 2,
+        "Assaba": 2,
+        "Hodh El Chargui": 1,
+        "Brakna": 1
+      },
+      "receiver_wilaya": {
+        "Dakhlet Nouadhibou": 23,
+        "Nouakchott-Ouest": 8,
+        "Trarza": 7,
+        "Nouakchott-Sud": 6,
+        "Guidimakha": 4,
+        "Tiris Zemmour": 3,
+        "Nouakchott-Nord": 3,
+        "Gorgol": 3,
+        "Hodh El Chargui": 3,
+        "Inchiri": 2
+      }
+    },
+    "false_negative_top_values": {
+      "anomaly_type": {
+        "STRUCTURING": 26,
+        "HIGH_FREQUENCY": 12,
+        "UNUSUAL_LOCATION": 4,
+        "HIGH_AMOUNT": 4
+      },
+      "transaction_type": {
+        "TRANSFER": 36,
+        "MERCHANT": 7,
+        "AIRTIME": 2,
+        "CASH_IN": 1
+      },
+      "channel": {
+        "USSD": 36,
+        "APP": 8,
+        "AGENT": 2
+      },
+      "operator": {
+        "Bankily": 9,
+        "bimbank Mobile": 7,
+        "Masrvi": 6,
+        "Sedad": 5,
+        "Moov Money": 5,
+        "Click": 4,
+        "Attijari Mobile": 3,
+        "Rassidy \u0631\u0635\u064a\u062f\u064a": 2,
+        "BaridCash": 2,
+        "Bamis Digital": 1
+      },
+      "status": {
+        "SUCCESS": 46
+      },
+      "sender_wilaya": {
+        "Nouakchott-Sud": 12,
+        "Nouakchott-Nord": 11,
+        "Nouakchott-Ouest": 8,
+        "Dakhlet Nouadhibou": 5,
+        "Brakna": 2,
+        "Guidimakha": 2,
+        "Trarza": 2,
+        "Hodh El Gharbi": 1,
+        "Gorgol": 1,
+        "Hodh El Chargui": 1
+      },
+      "receiver_wilaya": {
+        "Nouakchott-Sud": 13,
+        "Nouakchott-Nord": 10,
+        "Dakhlet Nouadhibou": 5,
+        "Nouakchott-Ouest": 4,
+        "Guidimakha": 3,
+        "Trarza": 2,
+        "Hodh El Chargui": 2,
+        "Hodh El Gharbi": 2,
+        "Inchiri": 2,
+        "Tiris Zemmour": 1
+      }
+    },
+    "analysis_file": "D:\\mauripay-analytics\\backend\\string\\autoencoder_error_analysis.json"
+  },
+  "feature_engineering": {
+    "input_columns": [
+      "transaction_id",
+      "timestamp",
+      "sender_id",
+      "receiver_id",
+      "amount",
+      "currency",
+      "transaction_type",
+      "channel",
+      "operator",
+      "sender_wilaya",
+      "receiver_wilaya",
+      "status",
+      "fees",
+      "is_ramadan",
+      "bill_provider",
+      "origin_country",
+      "is_anomaly",
+      "anomaly_type"
+    ],
+    "ignored_columns": [
+      "transaction_id",
+      "sender_id",
+      "receiver_id",
+      "is_anomaly",
+      "anomaly_type",
+      "timestamp"
+    ],
+    "numerical_columns_used": [
+      "sender_usual_distance_km_prior",
+      "sender_distance_gap_km",
+      "sender_distance_ratio_prior",
+      "sender_receiver_id_tx_count_prior",
+      "sender_receiver_id_share_prior",
+      "sender_receiver_is_new_receiver",
+      "sender_receiver_is_rare_receiver",
+      "sender_receiver_wilaya_tx_count_prior",
+      "sender_total_tx_count_prior",
+      "sender_receiver_wilaya_share_prior",
+      "sender_receiver_is_new_wilaya",
+      "sender_receiver_is_rare_wilaya",
+      "amount",
+      "fees",
+      "is_ramadan",
+      "tx_gap_seconds",
+      "tx_count_5min",
+      "amount_sum_5min",
+      "amount_mean_5min",
+      "amount_std_5min",
+      "tx_count_1h",
+      "amount_sum_1h",
+      "amount_mean_1h",
+      "amount_std_1h",
+      "tx_count_24h",
+      "amount_sum_24h",
+      "amount_mean_24h",
+      "amount_std_24h",
+      "tx_count_7d",
+      "amount_sum_7d",
+      "amount_mean_7d",
+      "amount_std_7d",
+      "tx_count_10min",
+      "sender_unique_receivers_1h",
+      "same_sender_receiver_count_1h",
+      "similar_amount_count_1h",
+      "sender_unique_receivers_24h",
+      "same_receiver_amount_count_24h",
+      "receiver_tx_count_1h",
+      "receiver_unique_senders_1h",
+      "receiver_amount_sum_1h",
+      "receiver_tx_count_24h",
+      "receiver_unique_senders_24h",
+      "receiver_amount_sum_24h",
+      "operator_failure_rate_1h",
+      "sender_wilaya_change_count_24h",
+      "amount_vs_sender_avg_7d",
+      "sender_past_tx_count_7d",
+      "amount_vs_sender_past_avg_7d",
+      "amount_zscore_sender_7d",
+      "amount_log",
+      "fees_to_amount_ratio",
+      "is_failed",
+      "hour",
+      "day_of_week",
+      "is_weekend",
+      "hour_sin",
+      "hour_cos",
+      "day_of_week_sin",
+      "day_of_week_cos",
+      "is_night",
+      "incoming_amount_24h",
+      "outgoing_amount_24h",
+      "incoming_outgoing_ratio_24h",
+      "sender_wilaya_code",
+      "receiver_wilaya_code",
+      "is_cross_wilaya",
+      "wilaya_distance_km",
+      "amount_to_sender_mean_24h",
+      "amount_to_sender_mean_7d",
+      "amount_to_flow_24h",
+      "fee_rate",
+      "is_zero_fee",
+      "is_failed_status",
+      "failed_zero_fee_signal",
+      "is_far_wilaya",
+      "high_distance_amount_signal",
+      "remote_receiver_signal",
+      "sender_receiver_is_new_remote_wilaya",
+      "sender_receiver_is_rare_remote_wilaya",
+      "sender_receiver_remote_history_gap",
+      "new_remote_amount_signal",
+      "rare_remote_amount_signal",
+      "new_wilaya_distance_signal",
+      "new_wilaya_distance_amount_signal",
+      "tx_count_1h_to_24h_ratio",
+      "tx_count_1h_to_7d_ratio",
+      "tx_count_5min_to_1h_ratio",
+      "amount_std_to_mean_1h",
+      "amount_std_to_mean_5min",
+      "sender_receiver_tx_count_5min",
+      "sender_receiver_amount_mean_5min",
+      "sender_receiver_amount_std_5min",
+      "sender_receiver_amount_std_to_mean_5min",
+      "same_receiver_similar_amount_5min",
+      "structuring_signal",
+      "high_frequency_signal",
+      "domain_risk_score",
+      "day_of_month",
+      "month"
+    ],
+    "categorical_columns_used": [
+      "currency",
+      "transaction_type",
+      "channel",
+      "operator",
+      "sender_wilaya",
+      "receiver_wilaya",
+      "status",
+      "bill_provider",
+      "origin_country"
+    ],
+    "datetime_columns": [
+      "timestamp"
+    ],
+    "derived_datetime_columns": [
+      "hour",
+      "day_of_week",
+      "day_of_month",
+      "month",
+      "is_weekend"
+    ],
+    "project_feature_layers": [
+      "temporal",
+      "flow_ratio",
+      "geographic",
+      "risk_signals",
+      "risk"
+    ],
+    "feature_names": [
+      "num__sender_usual_distance_km_prior",
+      "num__sender_distance_gap_km",
+      "num__sender_distance_ratio_prior",
+      "num__sender_receiver_id_tx_count_prior",
+      "num__sender_receiver_id_share_prior",
+      "num__sender_receiver_is_new_receiver",
+      "num__sender_receiver_is_rare_receiver",
+      "num__sender_receiver_wilaya_tx_count_prior",
+      "num__sender_total_tx_count_prior",
+      "num__sender_receiver_wilaya_share_prior",
+      "num__sender_receiver_is_new_wilaya",
+      "num__sender_receiver_is_rare_wilaya",
+      "num__amount",
+      "num__fees",
+      "num__is_ramadan",
+      "num__tx_gap_seconds",
+      "num__tx_count_5min",
+      "num__amount_sum_5min",
+      "num__amount_mean_5min",
+      "num__amount_std_5min",
+      "num__tx_count_1h",
+      "num__amount_sum_1h",
+      "num__amount_mean_1h",
+      "num__amount_std_1h",
+      "num__tx_count_24h",
+      "num__amount_sum_24h",
+      "num__amount_mean_24h",
+      "num__amount_std_24h",
+      "num__tx_count_7d",
+      "num__amount_sum_7d",
+      "num__amount_mean_7d",
+      "num__amount_std_7d",
+      "num__tx_count_10min",
+      "num__sender_unique_receivers_1h",
+      "num__same_sender_receiver_count_1h",
+      "num__similar_amount_count_1h",
+      "num__sender_unique_receivers_24h",
+      "num__same_receiver_amount_count_24h",
+      "num__receiver_tx_count_1h",
+      "num__receiver_unique_senders_1h",
+      "num__receiver_amount_sum_1h",
+      "num__receiver_tx_count_24h",
+      "num__receiver_unique_senders_24h",
+      "num__receiver_amount_sum_24h",
+      "num__operator_failure_rate_1h",
+      "num__sender_wilaya_change_count_24h",
+      "num__amount_vs_sender_avg_7d",
+      "num__sender_past_tx_count_7d",
+      "num__amount_vs_sender_past_avg_7d",
+      "num__amount_zscore_sender_7d",
+      "num__amount_log",
+      "num__fees_to_amount_ratio",
+      "num__is_failed",
+      "num__hour",
+      "num__day_of_week",
+      "num__is_weekend",
+      "num__hour_sin",
+      "num__hour_cos",
+      "num__day_of_week_sin",
+      "num__day_of_week_cos",
+      "num__is_night",
+      "num__incoming_amount_24h",
+      "num__outgoing_amount_24h",
+      "num__incoming_outgoing_ratio_24h",
+      "num__sender_wilaya_code",
+      "num__receiver_wilaya_code",
+      "num__is_cross_wilaya",
+      "num__wilaya_distance_km",
+      "num__amount_to_sender_mean_24h",
+      "num__amount_to_sender_mean_7d",
+      "num__amount_to_flow_24h",
+      "num__fee_rate",
+      "num__is_zero_fee",
+      "num__is_failed_status",
+      "num__failed_zero_fee_signal",
+      "num__is_far_wilaya",
+      "num__high_distance_amount_signal",
+      "num__remote_receiver_signal",
+      "num__sender_receiver_is_new_remote_wilaya",
+      "num__sender_receiver_is_rare_remote_wilaya",
+      "num__sender_receiver_remote_history_gap",
+      "num__new_remote_amount_signal",
+      "num__rare_remote_amount_signal",
+      "num__new_wilaya_distance_signal",
+      "num__new_wilaya_distance_amount_signal",
+      "num__tx_count_1h_to_24h_ratio",
+      "num__tx_count_1h_to_7d_ratio",
+      "num__tx_count_5min_to_1h_ratio",
+      "num__amount_std_to_mean_1h",
+      "num__amount_std_to_mean_5min",
+      "num__sender_receiver_tx_count_5min",
+      "num__sender_receiver_amount_mean_5min",
+      "num__sender_receiver_amount_std_5min",
+      "num__sender_receiver_amount_std_to_mean_5min",
+      "num__same_receiver_similar_amount_5min",
+      "num__structuring_signal",
+      "num__high_frequency_signal",
+      "num__domain_risk_score",
+      "num__day_of_month",
+      "num__month",
+      "cat__currency_MRU",
+      "cat__currency_USD",
+      "cat__currency_XOF",
+      "cat__transaction_type_AIRTIME",
+      "cat__transaction_type_BILL_PAY",
+      "cat__transaction_type_CASH_IN",
+      "cat__transaction_type_CASH_OUT",
+      "cat__transaction_type_MERCHANT",
+      "cat__transaction_type_TRANSFER",
+      "cat__channel_AGENT",
+      "cat__channel_APP",
+      "cat__channel_USSD",
+      "cat__operator_Amanty",
+      "cat__operator_Attijari Mobile",
+      "cat__operator_BCIpay",
+      "cat__operator_Bamis Digital",
+      "cat__operator_Bankily",
+      "cat__operator_BaridCash",
+      "cat__operator_Click",
+      "cat__operator_GazaPay",
+      "cat__operator_Masrvi",
+      "cat__operator_Moov Money",
+      "cat__operator_Rassidy \u0631\u0635\u064a\u062f\u064a",
+      "cat__operator_Sedad",
+      "cat__operator_bimbank Mobile",
+      "cat__sender_wilaya_Adrar",
+      "cat__sender_wilaya_Assaba",
+      "cat__sender_wilaya_Brakna",
+      "cat__sender_wilaya_Dakhlet Nouadhibou",
+      "cat__sender_wilaya_Gorgol",
+      "cat__sender_wilaya_Guidimakha",
+      "cat__sender_wilaya_Hodh El Chargui",
+      "cat__sender_wilaya_Hodh El Gharbi",
+      "cat__sender_wilaya_Inchiri",
+      "cat__sender_wilaya_Nouakchott-Nord",
+      "cat__sender_wilaya_Nouakchott-Ouest",
+      "cat__sender_wilaya_Nouakchott-Sud",
+      "cat__sender_wilaya_Tagant",
+      "cat__sender_wilaya_Tiris Zemmour",
+      "cat__sender_wilaya_Trarza",
+      "cat__receiver_wilaya_Adrar",
+      "cat__receiver_wilaya_Assaba",
+      "cat__receiver_wilaya_Brakna",
+      "cat__receiver_wilaya_Dakhlet Nouadhibou",
+      "cat__receiver_wilaya_Gorgol",
+      "cat__receiver_wilaya_Guidimakha",
+      "cat__receiver_wilaya_Hodh El Chargui",
+      "cat__receiver_wilaya_Hodh El Gharbi",
+      "cat__receiver_wilaya_Inchiri",
+      "cat__receiver_wilaya_Nouakchott-Nord",
+      "cat__receiver_wilaya_Nouakchott-Ouest",
+      "cat__receiver_wilaya_Nouakchott-Sud",
+      "cat__receiver_wilaya_Tagant",
+      "cat__receiver_wilaya_Tiris Zemmour",
+      "cat__receiver_wilaya_Trarza",
+      "cat__status_SUCCESS",
+      "cat__bill_provider_CHINGUITEL",
+      "cat__bill_provider_MATTEL",
+      "cat__bill_provider_MAURITEL",
+      "cat__bill_provider_SNDE",
+      "cat__bill_provider_SOMELEC",
+      "cat__bill_provider_UNKNOWN",
+      "cat__origin_country_ES",
+      "cat__origin_country_FR",
+      "cat__origin_country_UNKNOWN",
+      "cat__origin_country_US"
+    ]
+  },
+  "model_parameters": {
+    "encoding_dim": 8,
+    "hidden_dims": [
+      32,
+      16
+    ],
+    "learning_rate": 0.001,
+    "epochs": 50,
+    "batch_size": 128,
+    "threshold_percentile": 96.0,
+    "random_state": 42,
+    "device": null,
+    "threshold": 4.8396710205076205,
+    "input_dim": 166,
+    "training_loss_last": 0.16490266915417454,
+    "training_loss_epochs": 50
+  },
+  "training_loss": [
+    0.5082426269418456,
+    0.3866804555583179,
+    0.3187159404223195,
+    0.30065717039425177,
+    0.28698965014319244,
+    0.2710701473781293,
+    0.25947622348840715,
+    0.247124412549945,
+    0.2351906158520856,
+    0.22619673147430452,
+    0.21950030653008046,
+    0.2147240933510243,
+    0.21107466606644051,
+    0.207435953978871,
+    0.2045061645311042,
+    0.2016674848213324,
+    0.19819600158486744,
+    0.19567873717879625,
+    0.192650215436934,
+    0.18952722795149282,
+    0.18738829698328918,
+    0.18342835624336226,
+    0.18146834753400948,
+    0.17967538742638672,
+    0.17816487040090626,
+    0.17658458086020398,
+    0.17580138810236584,
+    0.1751012213309925,
+    0.17410730727098073,
+    0.17342759872877006,
+    0.17309330645828502,
+    0.17238861857659848,
+    0.17235840104801578,
+    0.17137417031781574,
+    0.17112297564193463,
+    0.17069863330187196,
+    0.17022402993125366,
+    0.17016194845728305,
+    0.16964096587871766,
+    0.16926065969539014,
+    0.1685824404200099,
+    0.16877812933717606,
+    0.16804552965037123,
+    0.16778354772657197,
+    0.1676440276863384,
+    0.16707974483551605,
+    0.1665623897088435,
+    0.16611632737036144,
+    0.16603815503732794,
+    0.16490266915417454
+  ],
+  "threshold_optimization": {
+    "selected": {
+      "percentile": 96.0,
+      "threshold": 4.8396710205076205,
+      "precision": 0.9,
+      "recall": 0.6629834254143646,
+      "f1_score": 0.7635206786850477,
+      "confusion_matrix": [
+        [
+          9417,
+          40
+        ],
+        [
+          183,
+          360
+        ]
+      ]
+    },
+    "candidates": [
+      {
+        "percentile": 80.0,
+        "threshold": 0.20124271512031558,
+        "precision": 0.2305,
+        "recall": 0.848987108655617,
+        "f1_score": 0.36256390090444357,
+        "confusion_matrix": [
+          [
+            7918,
+            1539
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 80.5,
+        "threshold": 0.20520086094737064,
+        "precision": 0.2364102564102564,
+        "recall": 0.848987108655617,
+        "f1_score": 0.36983553951062975,
+        "confusion_matrix": [
+          [
+            7968,
+            1489
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 81.0,
+        "threshold": 0.20884271219372752,
+        "precision": 0.24263157894736842,
+        "recall": 0.848987108655617,
+        "f1_score": 0.3774048301268932,
+        "confusion_matrix": [
+          [
+            8018,
+            1439
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 81.5,
+        "threshold": 0.2129156570136547,
+        "precision": 0.2491891891891892,
+        "recall": 0.848987108655617,
+        "f1_score": 0.38529043042206434,
+        "confusion_matrix": [
+          [
+            8068,
+            1389
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 82.0,
+        "threshold": 0.2169834163784981,
+        "precision": 0.2561111111111111,
+        "recall": 0.848987108655617,
+        "f1_score": 0.3935125906956893,
+        "confusion_matrix": [
+          [
+            8118,
+            1339
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 82.5,
+        "threshold": 0.22218720614910123,
+        "precision": 0.2634285714285714,
+        "recall": 0.848987108655617,
+        "f1_score": 0.40209332751853466,
+        "confusion_matrix": [
+          [
+            8168,
+            1289
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 83.0,
+        "threshold": 0.22700669556856157,
+        "precision": 0.2711764705882353,
+        "recall": 0.848987108655617,
+        "f1_score": 0.41105662059741416,
+        "confusion_matrix": [
+          [
+            8218,
+            1239
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 83.5,
+        "threshold": 0.23117631755769233,
+        "precision": 0.2793939393939394,
+        "recall": 0.848987108655617,
+        "f1_score": 0.42042863657090745,
+        "confusion_matrix": [
+          [
+            8268,
+            1189
+          ],
+          [
+            82,
+            461
+          ]
+        ]
+      },
+      {
+        "percentile": 84.0,
+        "threshold": 0.23580699920654297,
+        "precision": 0.2875,
+        "recall": 0.8471454880294659,
+        "f1_score": 0.42930471301913203,
+        "confusion_matrix": [
+          [
+            8317,
+            1140
+          ],
+          [
+            83,
+            460
+          ]
+        ]
+      },
+      {
+        "percentile": 84.5,
+        "threshold": 0.24107708685100068,
+        "precision": 0.2948387096774194,
+        "recall": 0.8416206261510129,
+        "f1_score": 0.4366937410415671,
+        "confusion_matrix": [
+          [
+            8364,
+            1093
+          ],
+          [
+            86,
+            457
+          ]
+        ]
+      },
+      {
+        "percentile": 85.0,
+        "threshold": 0.24511122703552243,
+        "precision": 0.30333333333333334,
+        "recall": 0.8379373848987108,
+        "f1_score": 0.4454233969652472,
+        "confusion_matrix": [
+          [
+            8412,
+            1045
+          ],
+          [
+            88,
+            455
+          ]
+        ]
+      },
+      {
+        "percentile": 85.5,
+        "threshold": 0.24935695432126526,
+        "precision": 0.3137931034482759,
+        "recall": 0.8379373848987108,
+        "f1_score": 0.45659809332664325,
+        "confusion_matrix": [
+          [
+            8462,
+            995
+          ],
+          [
+            88,
+            455
+          ]
+        ]
+      },
+      {
+        "percentile": 86.0,
+        "threshold": 0.2551327741146086,
+        "precision": 0.3242857142857143,
+        "recall": 0.8360957642725598,
+        "f1_score": 0.46731857951621203,
+        "confusion_matrix": [
+          [
+            8511,
+            946
+          ],
+          [
+            89,
+            454
+          ]
+        ]
+      },
+      {
+        "percentile": 86.5,
+        "threshold": 0.2599831919372082,
+        "precision": 0.3362962962962963,
+        "recall": 0.8360957642725598,
+        "f1_score": 0.479661912308505,
+        "confusion_matrix": [
+          [
+            8561,
+            896
+          ],
+          [
+            89,
+            454
+          ]
+        ]
+      },
+      {
+        "percentile": 87.0,
+        "threshold": 0.2666146072745323,
+        "precision": 0.34923076923076923,
+        "recall": 0.8360957642725598,
+        "f1_score": 0.49267498643516006,
+        "confusion_matrix": [
+          [
+            8611,
+            846
+          ],
+          [
+            89,
+            454
+          ]
+        ]
+      },
+      {
+        "percentile": 87.5,
+        "threshold": 0.2722727619111538,
+        "precision": 0.3624,
+        "recall": 0.8342541436464088,
+        "f1_score": 0.5052983825989961,
+        "confusion_matrix": [
+          [
+            8660,
+            797
+          ],
+          [
+            90,
+            453
+          ]
+        ]
+      },
+      {
+        "percentile": 88.0,
+        "threshold": 0.27854113698005684,
+        "precision": 0.37666666666666665,
+        "recall": 0.8324125230202578,
+        "f1_score": 0.5186460126219162,
+        "confusion_matrix": [
+          [
+            8709,
+            748
+          ],
+          [
+            91,
+            452
+          ]
+        ]
+      },
+      {
+        "percentile": 88.5,
+        "threshold": 0.28529588609933854,
+        "precision": 0.39304347826086955,
+        "recall": 0.8324125230202578,
+        "f1_score": 0.5339633786178382,
+        "confusion_matrix": [
+          [
+            8759,
+            698
+          ],
+          [
+            91,
+            452
+          ]
+        ]
+      },
+      {
+        "percentile": 89.0,
+        "threshold": 0.2951429083943367,
+        "precision": 0.4109090909090909,
+        "recall": 0.8324125230202578,
+        "f1_score": 0.5502130249543518,
+        "confusion_matrix": [
+          [
+            8809,
+            648
+          ],
+          [
+            91,
+            452
+          ]
+        ]
+      },
+      {
+        "percentile": 89.5,
+        "threshold": 0.3047080248594284,
+        "precision": 0.42857142857142855,
+        "recall": 0.8287292817679558,
+        "f1_score": 0.5649717514124294,
+        "confusion_matrix": [
+          [
+            8857,
+            600
+          ],
+          [
+            93,
+            450
+          ]
+        ]
+      },
+      {
+        "percentile": 90.0,
+        "threshold": 0.3175385922193528,
+        "precision": 0.449,
+        "recall": 0.8268876611418048,
+        "f1_score": 0.5819831497083603,
+        "confusion_matrix": [
+          [
+            8906,
+            551
+          ],
+          [
+            94,
+            449
+          ]
+        ]
+      },
+      {
+        "percentile": 90.5,
+        "threshold": 0.33390427976846715,
+        "precision": 0.4726315789473684,
+        "recall": 0.8268876611418048,
+        "f1_score": 0.6014735432016075,
+        "confusion_matrix": [
+          [
+            8956,
+            501
+          ],
+          [
+            94,
+            449
+          ]
+        ]
+      },
+      {
+        "percentile": 91.0,
+        "threshold": 0.35062257498502736,
+        "precision": 0.49666666666666665,
+        "recall": 0.8232044198895028,
+        "f1_score": 0.6195426195426196,
+        "confusion_matrix": [
+          [
+            9004,
+            453
+          ],
+          [
+            96,
+            447
+          ]
+        ]
+      },
+      {
+        "percentile": 91.5,
+        "threshold": 0.3698260323703291,
+        "precision": 0.5223529411764706,
+        "recall": 0.8176795580110497,
+        "f1_score": 0.6374730796841349,
+        "confusion_matrix": [
+          [
+            9051,
+            406
+          ],
+          [
+            99,
+            444
+          ]
+        ]
+      },
+      {
+        "percentile": 92.0,
+        "threshold": 0.3924453592300415,
+        "precision": 0.55,
+        "recall": 0.8103130755064457,
+        "f1_score": 0.6552494415487714,
+        "confusion_matrix": [
+          [
+            9097,
+            360
+          ],
+          [
+            103,
+            440
+          ]
+        ]
+      },
+      {
+        "percentile": 92.5,
+        "threshold": 0.42109817191958443,
+        "precision": 0.576,
+        "recall": 0.7955801104972375,
+        "f1_score": 0.6682134570765661,
+        "confusion_matrix": [
+          [
+            9139,
+            318
+          ],
+          [
+            111,
+            432
+          ]
+        ]
+      },
+      {
+        "percentile": 93.0,
+        "threshold": 0.45888292074203485,
+        "precision": 0.6085714285714285,
+        "recall": 0.7845303867403315,
+        "f1_score": 0.6854384553499597,
+        "confusion_matrix": [
+          [
+            9183,
+            274
+          ],
+          [
+            117,
+            426
+          ]
+        ]
+      },
+      {
+        "percentile": 93.5,
+        "threshold": 0.49400605544448184,
+        "precision": 0.6523076923076923,
+        "recall": 0.7808471454880295,
+        "f1_score": 0.71081307627829,
+        "confusion_matrix": [
+          [
+            9231,
+            226
+          ],
+          [
+            119,
+            424
+          ]
+        ]
+      },
+      {
+        "percentile": 94.0,
+        "threshold": 0.5799378204345699,
+        "precision": 0.6966666666666667,
+        "recall": 0.7697974217311234,
+        "f1_score": 0.731408573928259,
+        "confusion_matrix": [
+          [
+            9275,
+            182
+          ],
+          [
+            125,
+            418
+          ]
+        ]
+      },
+      {
+        "percentile": 94.5,
+        "threshold": 0.6512108311057094,
+        "precision": 0.7272727272727273,
+        "recall": 0.7366482504604052,
+        "f1_score": 0.7319304666056725,
+        "confusion_matrix": [
+          [
+            9307,
+            150
+          ],
+          [
+            143,
+            400
+          ]
+        ]
+      },
+      {
+        "percentile": 95.0,
+        "threshold": 0.8651707053184489,
+        "precision": 0.774,
+        "recall": 0.712707182320442,
+        "f1_score": 0.7420901246404602,
+        "confusion_matrix": [
+          [
+            9344,
+            113
+          ],
+          [
+            156,
+            387
+          ]
+        ]
+      },
+      {
+        "percentile": 95.5,
+        "threshold": 2.076204963922503,
+        "precision": 0.8288888888888889,
+        "recall": 0.6869244935543278,
+        "f1_score": 0.7512588116817724,
+        "confusion_matrix": [
+          [
+            9380,
+            77
+          ],
+          [
+            170,
+            373
+          ]
+        ]
+      },
+      {
+        "percentile": 96.0,
+        "threshold": 4.8396710205076205,
+        "precision": 0.9,
+        "recall": 0.6629834254143646,
+        "f1_score": 0.7635206786850477,
+        "confusion_matrix": [
+          [
+            9417,
+            40
+          ],
+          [
+            183,
+            360
+          ]
+        ]
+      },
+      {
+        "percentile": 96.5,
+        "threshold": 22.544952545165994,
+        "precision": 0.9685714285714285,
+        "recall": 0.6243093922651933,
+        "f1_score": 0.7592385218365062,
+        "confusion_matrix": [
+          [
+            9446,
+            11
+          ],
+          [
+            204,
+            339
+          ]
+        ]
+      },
+      {
+        "percentile": 97.0,
+        "threshold": 108.62960571288994,
+        "precision": 0.9933333333333333,
+        "recall": 0.5488029465930019,
+        "f1_score": 0.7069988137603797,
+        "confusion_matrix": [
+          [
+            9455,
+            2
+          ],
+          [
+            245,
+            298
+          ]
+        ]
+      },
+      {
+        "percentile": 97.5,
+        "threshold": 888.5442840575948,
+        "precision": 0.996,
+        "recall": 0.4585635359116022,
+        "f1_score": 0.6279949558638083,
+        "confusion_matrix": [
+          [
+            9456,
+            1
+          ],
+          [
+            294,
+            249
+          ]
+        ]
+      },
+      {
+        "percentile": 98.0,
+        "threshold": 4820.096181640625,
+        "precision": 1.0,
+        "recall": 0.3683241252302026,
+        "f1_score": 0.5383580080753702,
+        "confusion_matrix": [
+          [
+            9457,
+            0
+          ],
+          [
+            343,
+            200
+          ]
+        ]
+      },
+      {
+        "percentile": 98.5,
+        "threshold": 8962.806010742055,
+        "precision": 1.0,
+        "recall": 0.27624309392265195,
+        "f1_score": 0.4329004329004329,
+        "confusion_matrix": [
+          [
+            9457,
+            0
+          ],
+          [
+            393,
+            150
+          ]
+        ]
+      },
+      {
+        "percentile": 99.0,
+        "threshold": 13677.017666015628,
+        "precision": 1.0,
+        "recall": 0.1841620626151013,
+        "f1_score": 0.3110419906687403,
+        "confusion_matrix": [
+          [
+            9457,
+            0
+          ],
+          [
+            443,
+            100
+          ]
+        ]
+      },
+      {
+        "percentile": 99.5,
+        "threshold": 17788.986123046852,
+        "precision": 1.0,
+        "recall": 0.09208103130755065,
+        "f1_score": 0.16863406408094436,
+        "confusion_matrix": [
+          [
+            9457,
+            0
+          ],
+          [
+            493,
+            50
+          ]
+        ]
+      }
+    ],
+    "objective": "maximize_f1_then_recall_then_precision"
+  }
+}
