@@ -19,7 +19,7 @@ backend/data/*.csv
 backend/data/generated/*
 data_generated/
 *.parquet
-backend/models/*
+# backend/models/*
 backend/outputs/*
 models/*
 outputs/*
