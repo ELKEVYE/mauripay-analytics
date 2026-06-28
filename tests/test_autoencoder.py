@@ -443,6 +443,11 @@ class AutoencoderTrainingHelpersTests(unittest.TestCase):
         self.assertEqual(adjusted["anomaly_label"].tolist(), [0, 1])
         self.assertEqual(adjusted["autoencoder_label"].tolist(), [0, 0])
         self.assertEqual(adjusted["business_rule_label"].tolist(), [0, 1])
+        self.assertEqual(adjusted["autoencoder_model_score"].tolist(), [0.1, 0.2])
+        self.assertGreater(
+            adjusted["anomaly_score"].iloc[1],
+            adjusted["autoencoder_model_score"].max(),
+        )
 
     def test_business_rules_flag_operator_outage_cluster(self):
         dataframe = pd.DataFrame(

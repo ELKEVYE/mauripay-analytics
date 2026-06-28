@@ -7,6 +7,8 @@ Le projet fournit actuellement :
 
 - un schema de donnees Pydantic pour les transactions Mobile Money ;
 - des exemples d'ingestion en CSV et JSON ;
+- une API FastAPI avec ingestion, generation, statistiques, series
+  temporelles, geographie et detection ;
 - un generateur de donnees synthetiques realistes ;
 - des patterns mauritaniens : Ramadan, salaires, factures, diaspora, tontines,
   geographie et canaux USSD/APP/AGENT ;
@@ -181,6 +183,5 @@ Termine :
 
 Planifie pour M2/M3 :
 
-- API FastAPI et documentation OpenAPI ;
 - dashboard React ;
 - couverture de tests complete, integration et CI/CD.

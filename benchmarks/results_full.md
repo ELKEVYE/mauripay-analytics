@@ -1,6 +1,6 @@
 # Benchmark S7 - Comparaison des detecteurs
 
-Date : 2026-05-24 04:28:10 +02:00
+Date : 2026-06-01 14:34:41 +02:00
 Machine : Windows-10-10.0.19045-SP0
 Python : 3.12.3
 Dataset : MauriPay-S 10K
@@ -24,7 +24,7 @@ Les valeurs ci-dessous viennent de l'execution reelle stockee dans
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | MauriPay-S 10K | Isolation Forest | 0.6150 | 0.1809 | 0.2795 | 0.7913 | 0.5096 | 0.3374 | 200 |
 | MauriPay-S 10K | LOF | 0.2531 | 0.0603 | 0.0974 | 0.6839 | 3.5464 | 1.8186 | 162 |
-| MauriPay-S 10K | Autoencoder | 0.7096 | 0.7618 | 0.7348 | 0.9078 | 23.5140 | 0.2134 | 730 |
+| MauriPay-S 10K | Autoencoder | 0.6954 | 0.7588 | 0.7257 | 0.9070 | 45.3932 | 0.1540 | 742 |
 
 ## Notes
 

@@ -32,16 +32,29 @@ def get_timeseries(
     frame["is_anomaly_api"] = anomaly_mask(frame).astype(int)
     frame["day"] = frame["timestamp"].dt.date.astype(str)
     frame["hour"] = frame["timestamp"].dt.hour
+    frame["day_of_week"] = frame["timestamp"].dt.day_name()
     frame["week"] = frame["timestamp"].dt.tz_convert(None).dt.to_period("W").astype(str)
 
     transactions_by_day = (
         frame.groupby("day").size().reset_index(name="transactions").to_dict(orient="records")
     )
+    amounts_by_day = (
+        frame.groupby("day")["amount"].sum().reset_index(name="total_amount").to_dict(orient="records")
+    )
     amounts_by_hour = (
         frame.groupby("hour")["amount"].sum().reset_index(name="total_amount").to_dict(orient="records")
     )
+    anomalies_by_hour = (
+        frame.groupby("hour")["is_anomaly_api"].sum().reset_index(name="anomalies").to_dict(orient="records")
+    )
     anomalies_by_week = (
         frame.groupby("week")["is_anomaly_api"].sum().reset_index(name="anomalies").to_dict(orient="records")
+    )
+    hourly_heatmap = (
+        frame.groupby(["day_of_week", "hour"])
+        .size()
+        .reset_index(name="transactions")
+        .to_dict(orient="records")
     )
 
     if "operator" in frame.columns:
@@ -60,8 +73,11 @@ def get_timeseries(
 
     return {
         "transactions_by_day": transactions_by_day,
+        "amounts_by_day": amounts_by_day,
         "amounts_by_hour": amounts_by_hour,
+        "anomalies_by_hour": anomalies_by_hour,
         "anomalies_by_week": anomalies_by_week,
+        "hourly_heatmap": hourly_heatmap,
         "volume_by_operator": volume_by_operator,
         "volume_by_wilaya": volume_by_wilaya,
     }

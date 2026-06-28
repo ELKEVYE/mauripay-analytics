@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -8,11 +9,35 @@ from fastapi import HTTPException
 from mauripay.detection.io import load_table, project_backend_root
 
 
+def allowed_api_roots() -> list[Path]:
+    backend_root = project_backend_root().resolve()
+    project_root = backend_root.parent
+    project_data_root = (project_root / "data").resolve()
+    configured_roots = [
+        Path(item).expanduser().resolve()
+        for item in os.environ.get("MAURIPAY_API_ALLOWED_ROOTS", "").split(os.pathsep)
+        if item
+    ]
+    return [backend_root, project_data_root, *configured_roots]
+
+
 def backend_path(path: str | Path) -> Path:
     candidate = Path(path)
     if candidate.is_absolute():
-        return candidate
-    return project_backend_root() / candidate
+        resolved = candidate.expanduser().resolve()
+    elif candidate.parts and candidate.parts[0] == "data":
+        resolved = (project_backend_root().parent / candidate).resolve()
+    else:
+        resolved = (project_backend_root() / candidate).resolve()
+
+    if not any(resolved.is_relative_to(root) for root in allowed_api_roots()):
+        allowed = ", ".join(str(root) for root in allowed_api_roots())
+        raise HTTPException(
+            status_code=403,
+            detail=f"Path is outside allowed API roots: {allowed}",
+        )
+
+    return resolved
 
 
 def load_dataset(path: str | Path) -> pd.DataFrame:

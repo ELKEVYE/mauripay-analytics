@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import logging
 import time
 from importlib import import_module
 from pathlib import Path
 from typing import Any, Self
 
 import numpy as np
+import pandas as pd
 
 from mauripay.detection.base import BaseDetector
+
+
+logger = logging.getLogger(__name__)
 
 try:
     torch: Any = import_module("torch")
@@ -189,12 +194,16 @@ class AutoencoderDetector(BaseDetector):
 
         self.training_loss_ = []
         self.model.train()
-        print(
+        logger.info(
             "Autoencoder training started: "
-            f"samples={len(dataset)}, features={self.input_dim_}, "
-            f"epochs={self.epochs}, batch_size={self.batch_size}, "
-            f"batches_per_epoch={len(loader)}, device={device}",
-            flush=True,
+            "samples=%s, features=%s, epochs=%s, batch_size=%s, "
+            "batches_per_epoch=%s, device=%s",
+            len(dataset),
+            self.input_dim_,
+            self.epochs,
+            self.batch_size,
+            len(loader),
+            device,
         )
         for epoch_index in range(self.epochs):
             epoch_started_at = time.perf_counter()
@@ -210,13 +219,15 @@ class AutoencoderDetector(BaseDetector):
             average_loss = epoch_loss / len(dataset)
             self.training_loss_.append(average_loss)
             elapsed_seconds = time.perf_counter() - epoch_started_at
-            print(
-                f"Epoch {epoch_index + 1}/{self.epochs} completed "
-                f"- loss={average_loss:.6f} - {elapsed_seconds:.1f}s",
-                flush=True,
+            logger.info(
+                "Epoch %s/%s completed - loss=%.6f - %.1fs",
+                epoch_index + 1,
+                self.epochs,
+                average_loss,
+                elapsed_seconds,
             )
 
-        print("Computing reconstruction threshold...", flush=True)
+        logger.info("Computing reconstruction threshold")
         errors = self._reconstruction_errors(array)
         self.threshold_ = float(np.percentile(errors, self.threshold_percentile))
         return self
@@ -228,6 +239,19 @@ class AutoencoderDetector(BaseDetector):
 
     def score_samples(self, X: np.ndarray) -> np.ndarray:
         return self._reconstruction_errors(X)
+
+    def results(self, X: np.ndarray) -> pd.DataFrame:
+        """Calculate reconstruction errors once and derive labels from them."""
+        if self.threshold_ is None:
+            raise RuntimeError("AutoencoderDetector is not fitted. Call fit() first.")
+        scores = self.score_samples(X)
+        return pd.DataFrame(
+            {
+                "anomaly_label": (scores > self.threshold_).astype(int),
+                "anomaly_score": scores,
+                "algorithm": self.algorithm,
+            }
+        )
 
     def save(self, path: str | Path) -> Path:
         return super().save(path)

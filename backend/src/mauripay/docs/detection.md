@@ -178,13 +178,26 @@ autoencoder` or `mauripay predict --model autoencoder`. The
 `predict_autoencoder` module remains available for autoencoder-specific options
 such as `--threshold-percentile`.
 
-## API And Dashboard Later
+## FastAPI Integration
 
-There is no FastAPI app in the Month 1 project yet. The detection module is
-prepared for future API/dashboard work through stable saved artifacts and CSV
-outputs. A future API can call `train_models()` and `predict_anomalies()` from
-the CLI modules, and the dashboard can read the prediction CSV with transaction
-fields plus anomaly results.
+The project now includes a FastAPI backend that exposes the detection workflow
+through API routes. From `mauripay-analytics/backend`, run:
+
+```powershell
+$env:PYTHONPATH="src"
+uvicorn mauripay.api.main:app --reload
+```
+
+Useful detection endpoints:
+
+- `GET /detect/models`: list trained model artifacts and metadata.
+- `POST /detect/train`: train Isolation Forest, LOF, and optionally the
+  Autoencoder.
+- `POST /detect/predict`: run predictions with `isolation_forest`, `lof`,
+  `autoencoder`, or `ensemble`.
+
+The dashboard remains a future layer. It can consume the prediction CSV files
+or call the FastAPI endpoints directly.
 
 ## Improvement Workflow
 

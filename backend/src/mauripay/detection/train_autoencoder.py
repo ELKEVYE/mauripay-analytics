@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,9 @@ from mauripay.detection.business_rules import apply_business_rules
 from mauripay.detection.features import LABEL_COLUMNS, TransactionFeatureEngineer
 from mauripay.detection.io import load_table, project_backend_root
 from mauripay.detection.metrics import evaluate_detection
+
+
+logger = logging.getLogger(__name__)
 
 
 def find_label_column(columns: list[str]) -> str | None:
@@ -224,9 +228,9 @@ def train_autoencoder(
     model_directory.mkdir(parents=True, exist_ok=True)
     output_directory.mkdir(parents=True, exist_ok=True)
 
-    print(f"Loading dataset: {data_path}", flush=True)
+    logger.info("Loading dataset: %s", data_path)
     df = load_table(data_path)
-    print(f"Dataset loaded: rows={len(df)}, columns={len(df.columns)}", flush=True)
+    logger.info("Dataset loaded: rows=%s, columns=%s", len(df), len(df.columns))
     label_column = find_label_column(list(df.columns))
     if label_column is None:
         raise ValueError(
@@ -234,12 +238,9 @@ def train_autoencoder(
             f"Expected one of: {', '.join(sorted(LABEL_COLUMNS))}"
         )
     if max_rows is not None and len(df) > max_rows:
-        print(
-            f"Sampling dataset for this run: rows={max_rows} from {len(df)}",
-            flush=True,
-        )
+        logger.info("Sampling dataset for this run: rows=%s from %s", max_rows, len(df))
         df = sample_dataframe(df, label_column, max_rows, random_state)
-        print(f"Sample ready: rows={len(df)}", flush=True)
+        logger.info("Sample ready: rows=%s", len(df))
 
     y_true = normalize_label_values(df[label_column])
     normal_mask = [label == 0 for label in y_true]
@@ -247,11 +248,11 @@ def train_autoencoder(
     if df_normal.empty:
         raise ValueError("No normal transactions found for autoencoder training")
 
-    print(f"Normal rows used for training: {len(df_normal)}", flush=True)
-    print("Preparing training features...", flush=True)
+    logger.info("Normal rows used for training: %s", len(df_normal))
+    logger.info("Preparing training features")
     feature_engineer = TransactionFeatureEngineer()
     X_train_normal = feature_engineer.fit_transform(df_normal)
-    print(f"Training feature matrix ready: shape={X_train_normal.shape}", flush=True)
+    logger.info("Training feature matrix ready: shape=%s", X_train_normal.shape)
 
     detector = AutoencoderDetector(
         encoding_dim=encoding_dim,
@@ -265,15 +266,15 @@ def train_autoencoder(
     )
     detector.fit(X_train_normal)
 
-    print("Preparing full dataset features...", flush=True)
+    logger.info("Preparing full dataset features")
     X_full = feature_engineer.transform(df)
-    print(f"Full feature matrix ready: shape={X_full.shape}", flush=True)
-    print("Scoring full dataset...", flush=True)
+    logger.info("Full feature matrix ready: shape=%s", X_full.shape)
+    logger.info("Scoring full dataset")
     anomaly_scores = detector.score_samples(X_full)
     threshold_optimization: dict[str, Any] | None = None
     has_two_label_classes = len(set(y_true)) == 2
     if optimize_decision_threshold and has_two_label_classes:
-        print("Optimizing decision threshold...", flush=True)
+        logger.info("Optimizing decision threshold")
         threshold_optimization = optimize_threshold(
             y_true,
             anomaly_scores,
@@ -305,10 +306,10 @@ def train_autoencoder(
             "requires both normal and anomaly labels"
         )
     eval_path = output_directory / "evaluation_autoencoder.json"
-    print(f"Writing evaluation: {eval_path}", flush=True)
+    logger.info("Writing evaluation: %s", eval_path)
     eval_path.write_text(json.dumps(evaluation, indent=2, default=str), encoding="utf-8")
 
-    print("Building error analysis...", flush=True)
+    logger.info("Building error analysis")
     error_analysis = build_error_analysis(
         df=df,
         y_true=y_true,
@@ -319,9 +320,9 @@ def train_autoencoder(
 
     model_path = model_directory / "autoencoder.joblib"
     preprocessor_path = model_directory / "autoencoder_preprocessor.joblib"
-    print(f"Saving model: {model_path}", flush=True)
+    logger.info("Saving model: %s", model_path)
     detector.save(model_path)
-    print(f"Saving preprocessor: {preprocessor_path}", flush=True)
+    logger.info("Saving preprocessor: %s", preprocessor_path)
     feature_engineer.save(preprocessor_path)
 
     metadata: dict[str, Any] = {
@@ -342,7 +343,7 @@ def train_autoencoder(
     if threshold_optimization is not None:
         metadata["threshold_optimization"] = threshold_optimization
     metadata_path = model_directory / "metadata_autoencoder.json"
-    print(f"Writing metadata: {metadata_path}", flush=True)
+    logger.info("Writing metadata: %s", metadata_path)
     metadata_path.write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
     return metadata
 

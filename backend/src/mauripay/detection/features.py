@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -17,6 +18,8 @@ from mauripay.features.geographic import add_geographic_features
 from mauripay.features.risk_signals import add_risk_signal_features
 from mauripay.features.temporal import add_flow_ratio_features, add_temporal_features
 
+
+logger = logging.getLogger(__name__)
 
 LABEL_COLUMNS = {
     "is_anomaly",
@@ -129,56 +132,50 @@ class TransactionFeatureEngineer:
     def _has_columns(df: pd.DataFrame, columns: set[str]) -> bool:
         return columns <= set(df.columns)
 
+    @staticmethod
+    def _log_layer_start(name: str, rows: int) -> float:
+        logger.info("Feature layer %s started rows=%s", name, rows)
+        return time.perf_counter()
+
+    @staticmethod
+    def _log_layer_completed(name: str, started_at: float) -> None:
+        logger.info(
+            "Feature layer %s completed in %.1fs",
+            name,
+            time.perf_counter() - started_at,
+        )
+
     def _add_project_features(self, df: pd.DataFrame, *, fit: bool) -> pd.DataFrame:
         """Add reusable project features before IDs are removed."""
         working = df.copy()
         applied_layers: list[str] = []
 
         if self._has_columns(working, {"sender_id", "timestamp", "amount"}):
-            started_at = time.perf_counter()
-            print(f"Feature layer: temporal started rows={len(working)}", flush=True)
+            started_at = self._log_layer_start("temporal", len(working))
             working = add_temporal_features(working)
-            print(
-                f"Feature layer: temporal completed in {time.perf_counter() - started_at:.1f}s",
-                flush=True,
-            )
+            self._log_layer_completed("temporal", started_at)
             applied_layers.append("temporal")
 
         if self._has_columns(working, {"sender_id", "receiver_id", "timestamp", "amount"}):
-            started_at = time.perf_counter()
-            print(f"Feature layer: flow_ratio started rows={len(working)}", flush=True)
+            started_at = self._log_layer_start("flow_ratio", len(working))
             working = add_flow_ratio_features(working)
-            print(
-                f"Feature layer: flow_ratio completed in {time.perf_counter() - started_at:.1f}s",
-                flush=True,
-            )
+            self._log_layer_completed("flow_ratio", started_at)
             applied_layers.append("flow_ratio")
 
         if self._has_columns(working, {"sender_wilaya", "receiver_wilaya"}):
-            started_at = time.perf_counter()
-            print(f"Feature layer: geographic started rows={len(working)}", flush=True)
+            started_at = self._log_layer_start("geographic", len(working))
             working = add_geographic_features(working)
-            print(
-                f"Feature layer: geographic completed in {time.perf_counter() - started_at:.1f}s",
-                flush=True,
-            )
+            self._log_layer_completed("geographic", started_at)
             applied_layers.append("geographic")
 
-        started_at = time.perf_counter()
-        print(f"Feature layer: risk_signals started rows={len(working)}", flush=True)
+        started_at = self._log_layer_start("risk_signals", len(working))
         working = add_risk_signal_features(working)
-        print(
-            f"Feature layer: risk_signals completed in {time.perf_counter() - started_at:.1f}s",
-            flush=True,
-        )
+        self._log_layer_completed("risk_signals", started_at)
         applied_layers.append("risk_signals")
-        started_at = time.perf_counter()
-        print(f"Feature layer: domain_risk started rows={len(working)}", flush=True)
+
+        started_at = self._log_layer_start("domain_risk", len(working))
         working = self._add_domain_risk_features(working)
-        print(
-            f"Feature layer: domain_risk completed in {time.perf_counter() - started_at:.1f}s",
-            flush=True,
-        )
+        self._log_layer_completed("domain_risk", started_at)
         applied_layers.append("risk")
 
         if fit:
