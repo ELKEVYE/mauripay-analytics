@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pandas as pd
 
@@ -14,6 +15,7 @@ from mauripay.detection.model_registry import MODEL_FILENAMES, load_detector
 
 
 PREDICTION_MODELS = sorted([*MODEL_FILENAMES, "ensemble"])
+ENSEMBLE_ALGORITHMS = ("isolation_forest", "lof", "autoencoder")
 
 
 def find_label_column(columns: list[str]) -> str | None:
@@ -74,55 +76,81 @@ def write_prediction_evaluation(
         )
 
 
-def predict_ensemble(
+def combine_ensemble_predictions(
     data_path: str | Path,
-    model_dir: str | Path | None = None,
-    output: str | Path | None = None,
+    prediction_paths: dict[str, str | Path],
+    output: str | Path,
 ) -> Path:
-    backend_root = project_backend_root()
-    model_directory = Path(model_dir) if model_dir else backend_root / "models"
-    output_path = (
-        Path(output)
-        if output
-        else backend_root / "outputs" / "anomaly_predictions_ensemble.csv"
-    )
+    output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    algorithms = [
+    missing_predictions = [
         algorithm
-        for algorithm, filename in MODEL_FILENAMES.items()
-        if (model_directory / filename).exists()
+        for algorithm in ENSEMBLE_ALGORITHMS
+        if algorithm not in prediction_paths
     ]
-    if not algorithms:
-        raise FileNotFoundError(f"No trained model found in {model_directory}")
-
-    predictions = []
-    for algorithm in algorithms:
-        member_output = output_path.parent / f"_ensemble_{algorithm}.csv"
-        member_path = predict_anomalies(
-            algorithm=algorithm,
-            data_path=data_path,
-            model_dir=model_directory,
-            output=member_output,
-        )
-        frame = pd.read_csv(member_path)
-        predictions.append(
-            frame[["anomaly_label", "anomaly_score"]].rename(
-                columns={
-                    "anomaly_label": f"{algorithm}_label",
-                    "anomaly_score": f"{algorithm}_score",
-                }
-            )
+    if missing_predictions:
+        raise ValueError(
+            "Missing predictions required by the IF+LOF+Autoencoder ensemble: "
+            + ", ".join(missing_predictions)
         )
 
     base = load_table(data_path).reset_index(drop=True)
+    prediction_results = {
+        algorithm: pd.read_csv(prediction_paths[algorithm])
+        for algorithm in ENSEMBLE_ALGORITHMS
+    }
+    return combine_ensemble_results(
+        df=base,
+        prediction_results=prediction_results,
+        data_path=data_path,
+        output=output,
+    )
+
+
+def combine_ensemble_results_with_frame(
+    df: pd.DataFrame,
+    prediction_results: dict[str, pd.DataFrame],
+    data_path: str | Path,
+    output: str | Path,
+) -> tuple[Path, pd.DataFrame]:
+    """Build the ensemble without reloading the dataset or prediction CSV files."""
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    missing_predictions = [
+        algorithm
+        for algorithm in ENSEMBLE_ALGORITHMS
+        if algorithm not in prediction_results
+    ]
+    if missing_predictions:
+        raise ValueError(
+            "Missing predictions required by the IF+LOF+Autoencoder ensemble: "
+            + ", ".join(missing_predictions)
+        )
+
+    predictions = [
+        prediction_results[algorithm][["anomaly_label", "anomaly_score"]].rename(
+            columns={
+                "anomaly_label": f"{algorithm}_label",
+                "anomaly_score": f"{algorithm}_score",
+            }
+        )
+        for algorithm in ENSEMBLE_ALGORITHMS
+    ]
+    base = df.reset_index(drop=True)
     votes = pd.concat([item.filter(like="_label") for item in predictions], axis=1)
     scores = pd.concat([item.filter(like="_score") for item in predictions], axis=1)
     ensemble_result = pd.concat([base, *predictions], axis=1)
     ensemble_result["ensemble_vote_count"] = votes.sum(axis=1).astype(int)
     ensemble_result["anomaly_score"] = scores.mean(axis=1)
+    if_label = ensemble_result["isolation_forest_label"].astype(int).eq(1)
+    lof_label = ensemble_result["lof_label"].astype(int).eq(1)
+    autoencoder_label = ensemble_result["autoencoder_label"].astype(int).eq(1)
+    classical_consensus = if_label & lof_label
+    autoencoder_only = autoencoder_label & ~if_label & ~lof_label
+    ensemble_result["classical_consensus_label"] = classical_consensus.astype(int)
+    ensemble_result["autoencoder_only_label"] = autoencoder_only.astype(int)
     ensemble_result["anomaly_label"] = (
-        ensemble_result["ensemble_vote_count"] >= 1
+        classical_consensus | autoencoder_only
     ).astype(int)
     ensemble_result["algorithm"] = "ensemble"
     ensemble_result.to_csv(output_path, index=False)
@@ -135,7 +163,102 @@ def predict_ensemble(
         algorithm="ensemble",
     )
 
+    return output_path, ensemble_result
+
+
+def combine_ensemble_results(
+    df: pd.DataFrame,
+    prediction_results: dict[str, pd.DataFrame],
+    data_path: str | Path,
+    output: str | Path,
+) -> Path:
+    output_path, _ = combine_ensemble_results_with_frame(
+        df=df,
+        prediction_results=prediction_results,
+        data_path=data_path,
+        output=output,
+    )
     return output_path
+
+
+def predict_anomalies_from_frame(
+    algorithm: str,
+    df: pd.DataFrame,
+    data_path: str | Path,
+    model_dir: str | Path,
+    output: str | Path,
+    X: object | None = None,
+) -> tuple[Path, pd.DataFrame]:
+    """Predict from an already loaded frame and optionally precomputed features."""
+    model_directory = Path(model_dir)
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if X is None:
+        preprocessor_filename = (
+            "autoencoder_preprocessor.joblib"
+            if algorithm == "autoencoder"
+            else "preprocessor.joblib"
+        )
+        preprocessor = TransactionFeatureEngineer.load(
+            model_directory / preprocessor_filename
+        )
+        X = preprocessor.transform(df)
+
+    detector = load_detector(model_directory, algorithm)
+    detector_result = detector.results(X)
+    detector_result = apply_business_rules(df, detector_result)
+    result = pd.concat([df.reset_index(drop=True), detector_result], axis=1)
+    result.to_csv(output_path, index=False)
+
+    write_prediction_evaluation(
+        df=df,
+        detector_result=detector_result,
+        data_path=data_path,
+        output_path=output_path,
+        algorithm=algorithm,
+    )
+    return output_path, detector_result
+
+
+def predict_ensemble(
+    data_path: str | Path,
+    model_dir: str | Path | None = None,
+    output: str | Path | None = None,
+) -> Path:
+    backend_root = project_backend_root()
+    model_directory = Path(model_dir) if model_dir else backend_root / "models"
+    output_path = (
+        Path(output)
+        if output
+        else backend_root / "outputs" / "anomaly_predictions_ensemble.csv"
+    )
+    missing_algorithms = [
+        algorithm
+        for algorithm in ENSEMBLE_ALGORITHMS
+        if not (model_directory / MODEL_FILENAMES[algorithm]).exists()
+    ]
+    if missing_algorithms:
+        raise FileNotFoundError(
+            "Missing trained model(s) required by the IF+LOF+Autoencoder ensemble: "
+            + ", ".join(missing_algorithms)
+        )
+
+    with TemporaryDirectory() as temp_dir:
+        prediction_paths = {
+            algorithm: predict_anomalies(
+                algorithm=algorithm,
+                data_path=data_path,
+                model_dir=model_directory,
+                output=Path(temp_dir) / f"{algorithm}.csv",
+            )
+            for algorithm in ENSEMBLE_ALGORITHMS
+        }
+        return combine_ensemble_predictions(
+            data_path=data_path,
+            prediction_paths=prediction_paths,
+            output=output_path,
+        )
 
 
 def predict_anomalies(
@@ -160,30 +283,14 @@ def predict_anomalies(
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    df = load_table(data_path)
-    preprocessor_filename = (
-        "autoencoder_preprocessor.joblib"
-        if algorithm == "autoencoder"
-        else "preprocessor.joblib"
-    )
-    preprocessor = TransactionFeatureEngineer.load(model_directory / preprocessor_filename)
-    detector = load_detector(model_directory, algorithm)
-
-    X = preprocessor.transform(df)
-    detector_result = detector.results(X)
-    detector_result = apply_business_rules(df, detector_result)
-    result = pd.concat([df.reset_index(drop=True), detector_result], axis=1)
-    result.to_csv(output_path, index=False)
-
-    write_prediction_evaluation(
-        df=df,
-        detector_result=detector_result,
-        data_path=data_path,
-        output_path=output_path,
+    predictions_path, _ = predict_anomalies_from_frame(
         algorithm=algorithm,
+        df=load_table(data_path),
+        data_path=data_path,
+        model_dir=model_directory,
+        output=output_path,
     )
-
-    return output_path
+    return predictions_path
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

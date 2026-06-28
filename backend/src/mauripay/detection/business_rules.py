@@ -389,6 +389,12 @@ def apply_business_rules(
         else f"{algorithm}_model_label"
     )
     result[model_label_column] = result["anomaly_label"].astype(int)
+    original_scores = pd.to_numeric(
+        result.get("anomaly_score", pd.Series(0.0, index=result.index)),
+        errors="coerce",
+    ).fillna(0.0)
+    model_score_column = f"{algorithm}_model_score"
+    result[model_score_column] = original_scores
     reasons = _empty_reasons(result.index)
 
     failed_zero_fee = _failed_zero_fee_mask(source)
@@ -429,6 +435,12 @@ def apply_business_rules(
 
     result["business_rule_reasons"] = reasons
     result["business_rule_label"] = reasons.ne("").astype(int)
+    score_boost = float(original_scores.max()) + 1.0 if len(original_scores) else 1.0
+    result["business_rule_score"] = result["business_rule_label"].astype(float) * score_boost
+    result["anomaly_score"] = original_scores.mask(
+        result["business_rule_label"].astype(bool),
+        score_boost,
+    )
     result["anomaly_label"] = (
         result[model_label_column].astype(int) | result["business_rule_label"].astype(int)
     ).astype(int)

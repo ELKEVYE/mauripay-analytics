@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Self
 
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import IsolationForest
 
 from mauripay.detection.base import BaseDetector
@@ -39,6 +40,18 @@ class IsolationForestDetector(BaseDetector):
 
     def score_samples(self, X: np.ndarray) -> np.ndarray:
         return -self.model.score_samples(X)
+
+    def results(self, X: np.ndarray) -> pd.DataFrame:
+        """Compute labels and scores from one forest traversal."""
+        raw_scores = self.model.score_samples(X)
+        labels = (raw_scores < self.model.offset_).astype(int)
+        return pd.DataFrame(
+            {
+                "anomaly_label": labels,
+                "anomaly_score": -raw_scores,
+                "algorithm": self.algorithm,
+            }
+        )
 
     @property
     def parameters(self) -> dict[str, object]:

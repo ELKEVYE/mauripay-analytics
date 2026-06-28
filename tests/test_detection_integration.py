@@ -173,20 +173,6 @@ class DetectionIntegrationTests(unittest.TestCase):
             self.assertIn("anomaly_score", predictions.columns)
             self.assertIn("algorithm", predictions.columns)
 
-            ensemble_output_path = predict_anomalies(
-                algorithm="ensemble",
-                data_path=data_path,
-                model_dir=model_dir,
-                output=output_dir / "ensemble_predictions.csv",
-            )
-            ensemble_predictions = pd.read_csv(ensemble_output_path)
-
-            self.assertIn("isolation_forest_label", ensemble_predictions.columns)
-            self.assertIn("lof_label", ensemble_predictions.columns)
-            self.assertIn("ensemble_vote_count", ensemble_predictions.columns)
-            self.assertEqual(set(ensemble_predictions["algorithm"]), {"ensemble"})
-            self.assertTrue((output_dir / "evaluation_ensemble.json").exists())
-
     def test_tuning_writes_summary_and_results(self):
         dataframe = sample_dataframe()
 
@@ -274,6 +260,30 @@ class DetectionIntegrationTests(unittest.TestCase):
                     self.assertIn("autoencoder_label", predictions.columns)
                 else:
                     self.assertIn(f"{algorithm}_model_label", predictions.columns)
+
+            ensemble_output_path = predict_anomalies(
+                algorithm="ensemble",
+                data_path=data_path,
+                model_dir=model_dir,
+                output=prediction_dir / "ensemble.csv",
+            )
+            ensemble_predictions = pd.read_csv(ensemble_output_path)
+            if_label = ensemble_predictions["isolation_forest_label"].astype(int)
+            lof_label = ensemble_predictions["lof_label"].astype(int)
+            autoencoder_label = ensemble_predictions["autoencoder_label"].astype(int)
+            expected_consensus = (
+                (if_label.eq(1) & lof_label.eq(1))
+                | (autoencoder_label.eq(1) & if_label.eq(0) & lof_label.eq(0))
+            ).astype(int)
+            self.assertEqual(
+                ensemble_predictions["anomaly_label"].astype(int).tolist(),
+                expected_consensus.tolist(),
+            )
+            self.assertIn("classical_consensus_label", ensemble_predictions.columns)
+            self.assertIn("autoencoder_only_label", ensemble_predictions.columns)
+            self.assertFalse(
+                any(prediction_dir.glob("_ensemble_*.csv"))
+            )
 
 
 if __name__ == "__main__":

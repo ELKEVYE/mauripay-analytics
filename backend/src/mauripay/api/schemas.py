@@ -37,6 +37,7 @@ class IngestResponse(BaseModel):
     rows: int
     valid_rows: int
     invalid_rows: int
+    dataset_path: str
     errors_file: str | None = None
 
 
@@ -69,6 +70,13 @@ class PredictRequest(BaseModel):
     model_dir: str | None = Field(None, description="Optional model directory")
 
 
+class PredictAllRequest(BaseModel):
+    data_path: str = Field(
+        ...,
+        description="Uploaded CSV/JSON/Parquet path, relative to backend or absolute",
+    )
+
+
 class DetectionRunResponse(BaseModel):
     status: str
     algorithm: str
@@ -80,6 +88,20 @@ class DetectionRunResponse(BaseModel):
     results_path: str
     evaluation: dict[str, Any] | None = None
     preview: list[dict[str, Any]]
+
+
+class ModelPredictionSummary(BaseModel):
+    algorithm: str
+    total_transactions: int
+    anomalies_detected: int
+    output_path: str
+    preview: list[dict[str, Any]]
+
+
+class PredictAllResponse(BaseModel):
+    status: str
+    data_path: str
+    results: list[ModelPredictionSummary]
 
 
 class ModelStatusResponse(BaseModel):
@@ -106,8 +128,11 @@ class StatsResponse(BaseModel):
 
 class TimeseriesResponse(BaseModel):
     transactions_by_day: list[dict[str, Any]]
+    amounts_by_day: list[dict[str, Any]]
     amounts_by_hour: list[dict[str, Any]]
+    anomalies_by_hour: list[dict[str, Any]]
     anomalies_by_week: list[dict[str, Any]]
+    hourly_heatmap: list[dict[str, Any]]
     volume_by_operator: list[dict[str, Any]]
     volume_by_wilaya: list[dict[str, Any]]
 

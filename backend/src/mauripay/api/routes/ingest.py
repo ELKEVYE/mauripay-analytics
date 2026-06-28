@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 from shutil import copyfileobj
 
@@ -23,10 +24,7 @@ router = APIRouter(prefix="/ingest", tags=["ingestion"])
 
 
 def _backend_path(path: str | Path) -> Path:
-    candidate = Path(path)
-    if candidate.is_absolute():
-        return candidate
-    return project_backend_root() / candidate
+    return backend_path(path)
 
 
 def _serialize_error(error: IngestionError) -> dict[str, object]:
@@ -42,7 +40,7 @@ def _write_errors_file(result: IngestionResult, filename: str) -> str | None:
     if not result.errors:
         return None
 
-    reports_dir = project_backend_root() / "reports"
+    reports_dir = project_backend_root() / "outputs"
     reports_dir.mkdir(parents=True, exist_ok=True)
     safe_stem = Path(filename).stem or "ingestion"
     errors_path = reports_dir / f"{safe_stem}_ingestion_errors.json"
@@ -70,7 +68,9 @@ def ingest_file(file: UploadFile = File(...)) -> IngestResponse:
 
     uploads_dir = backend_path("data/uploads")
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    saved_path = uploads_dir / Path(file.filename or f"upload{suffix}").name
+    original_name = Path(file.filename or f"upload{suffix}").name
+    safe_name = f"{Path(original_name).stem}_{uuid.uuid4().hex[:8]}{suffix}"
+    saved_path = uploads_dir / safe_name
 
     try:
         with saved_path.open("wb") as output:
@@ -89,6 +89,7 @@ def ingest_file(file: UploadFile = File(...)) -> IngestResponse:
         "rows": result.total_rows,
         "valid_rows": result.valid_rows,
         "invalid_rows": result.invalid_rows,
+        "dataset_path": saved_path.relative_to(project_backend_root().parent).as_posix(),
         "errors_file": errors_file,
     }
 

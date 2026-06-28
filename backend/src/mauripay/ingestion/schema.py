@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # backend/src/mauripay/ingestion/schema.py
 
 from __future__ import annotations

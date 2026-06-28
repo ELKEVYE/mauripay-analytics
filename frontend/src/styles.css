@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color: #1f2933;
+  background: #ffffff;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #ffffff;
+}
+
+.app-shell,
+.app-content {
+  background: #ffffff;
+}
+
+.active-nav-cut::before,
+.active-nav-cut::after {
+  position: absolute;
+  right: 0;
+  width: 50px;
+  height: 50px;
+  content: "";
+  pointer-events: none;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.active-nav-cut {
+  box-shadow: 20px 0 0 #ffffff;
+}
+
+.active-nav-cut::before {
+  top: -50px;
+  box-shadow: 35px 35px 0 10px #ffffff;
+}
+
+.active-nav-cut::after {
+  bottom: -50px;
+  box-shadow: 35px -35px 0 10px #ffffff;
+}
+
+.dashboard-card {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 58%, rgba(236, 253, 245, 0.55) 100%);
+  box-shadow:
+    0 22px 50px -30px rgba(15, 23, 42, 0.48),
+    0 10px 24px -20px rgba(5, 150, 105, 0.32);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.dashboard-card:hover {
+  border-color: rgba(16, 185, 129, 0.32);
+  box-shadow:
+    0 28px 62px -32px rgba(15, 23, 42, 0.55),
+    0 16px 34px -24px rgba(5, 150, 105, 0.4);
+  transform: translateY(-2px);
+}
+
+.chart-card {
+  display: flex;
+  min-height: 16rem;
+  flex-direction: column;
+  border-radius: 8px;
+  padding: 0.875rem;
+}
+
+.chart-title {
+  margin-bottom: 0.625rem;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.soft-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+  scrollbar-width: thin;
+}
+
+.soft-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.soft-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+.soft-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.leaflet-container {
+  min-height: 360px;
+  width: 100%;
+}
+
+.geo-map-compact .leaflet-container {
+  height: 100%;
+  min-height: 0;
+}
+
+.app-dark {
+  color: #e2e8f0;
+  background: #0f172a;
+}
+
+.app-dark .app-content {
+  background: #0f172a;
+}
+
+.app-dark .dashboard-card {
+  border-color: #334155;
+  background: linear-gradient(135deg, #172033 0%, #172033 58%, #102a26 100%);
+}
+
+.app-dark .chart-title {
+  color: #f1f5f9;
+}
+
+.app-dark .active-nav-cut {
+  background-color: #0f172a !important;
+  color: #d1fae5 !important;
+  box-shadow: 20px 0 0 #0f172a;
+}
+
+.app-dark .active-nav-cut::before {
+  background: transparent;
+  box-shadow: 35px 35px 0 10px #0f172a;
+}
+
+.app-dark .active-nav-cut::after {
+  background: transparent;
+  box-shadow: 35px -35px 0 10px #0f172a;
+}
+
+.app-dark .app-header,
+.app-dark .app-sidebar,
+.app-dark .app-popover,
+.app-dark .bg-white {
+  border-color: #334155 !important;
+  background-color: #172033 !important;
+}
+
+.app-dark .app-sidebar {
+  border-color: #064e3b !important;
+  background-color: #022c22 !important;
+}
+
+.app-dark [class*="from-white"] {
+  background-image: linear-gradient(to bottom right, #172033, #1e293b) !important;
+}
+
+.app-dark .bg-slate-100,
+.app-dark .bg-slate-50 {
+  background-color: #111827 !important;
+}
+
+.app-dark .border-slate-100,
+.app-dark .border-slate-200,
+.app-dark .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+.app-dark .text-ink,
+.app-dark .text-slate-700,
+.app-dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+.app-dark .text-slate-400,
+.app-dark .text-slate-500,
+.app-dark .text-slate-600 {
+  color: #a8b3c5 !important;
+}
+
+.app-dark input,
+.app-dark select {
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+  background-color: #111827 !important;
+}
+
+.app-dark table thead {
+  background-color: #1e293b !important;
+}
+
+.app-dark table tbody {
+  background-color: #172033;
+}
+
+.app-dark table tbody tr:hover {
+  background-color: #1e293b !important;
+}
+
+.app-dark .recharts-cartesian-grid line {
+  stroke: #475569;
+}
+
+.app-dark .recharts-text {
+  fill: #cbd5e1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
