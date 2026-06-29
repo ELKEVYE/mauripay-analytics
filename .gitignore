@@ -15,12 +15,15 @@ env/
 # Donnees generees lourdes
 data/*.csv
 data/generated/*
+data/uploads/*
 backend/data/*.csv
 backend/data/generated/*
 data_generated/
 *.parquet
+*.joblib
+*.pkl
 backend/dist/*
-# backend/models/*
+backend/models/*
 backend/string/*
 backend/outputs/*
 models/*
