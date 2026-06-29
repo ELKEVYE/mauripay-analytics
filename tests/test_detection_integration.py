@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
@@ -20,6 +21,9 @@ from mauripay.detection.predict import predict_anomalies  # noqa: E402
 from mauripay.detection.train import train_models  # noqa: E402
 from mauripay.detection.tune import tune_models  # noqa: E402
 from mauripay.synthetic.generator import generate_transactions  # noqa: E402
+
+
+TORCH_AVAILABLE = importlib.util.find_spec("torch") is not None
 
 
 def sample_dataframe(rows: int = 120) -> pd.DataFrame:
@@ -61,6 +65,11 @@ class DetectionIntegrationTests(unittest.TestCase):
         self.assertIn("hour", engineer.selection.derived_datetime_columns)
         self.assertIn("temporal", engineer.selection.project_feature_layers)
         self.assertIn("risk", engineer.selection.project_feature_layers)
+        self.assertIn("risk_signals", engineer.selection.project_feature_layers)
+        self.assertIn("amount_to_sender_mean_7d", engineer.selection.numerical_columns)
+        self.assertIn("failed_zero_fee_signal", engineer.selection.numerical_columns)
+        self.assertIn("sender_receiver_is_new_wilaya", engineer.selection.numerical_columns)
+        self.assertIn("structuring_signal", engineer.selection.numerical_columns)
 
     def test_iforest_trains_predicts_and_loads(self):
         dataframe = sample_dataframe()
@@ -139,6 +148,7 @@ class DetectionIntegrationTests(unittest.TestCase):
                 n_neighbors=10,
                 contamination=0.05,
                 test_size=0.25,
+                lof_max_train_rows=30,
             )
 
             self.assertTrue((model_dir / "isolation_forest.joblib").exists())
@@ -146,6 +156,7 @@ class DetectionIntegrationTests(unittest.TestCase):
             self.assertTrue((model_dir / "preprocessor.joblib").exists())
             self.assertEqual(metadata["number_of_rows"], len(dataframe))
             self.assertEqual(metadata["evaluation_mode"], "holdout")
+            self.assertEqual(metadata["model_parameters"]["lof"]["training_rows"], 30)
             self.assertIn("by_anomaly_type", metadata["evaluations"]["isolation_forest"])
             self.assertTrue((output_dir / "evaluation_isolation_forest.json").exists())
             self.assertTrue((output_dir / "evaluation_lof.json").exists())
@@ -185,6 +196,94 @@ class DetectionIntegrationTests(unittest.TestCase):
             self.assertTrue((output_dir / "tuning_results.csv").exists())
             self.assertTrue((output_dir / "tuning_summary.json").exists())
             self.assertIn("best", summary)
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "torch not installed")
+    def test_train_models_with_autoencoder_predicts_all_detectors_end_to_end(self):
+        dataframe = sample_dataframe(rows=80)
+
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            data_path = temp_path / "transactions.csv"
+            model_dir = temp_path / "models"
+            output_dir = temp_path / "outputs"
+            prediction_dir = temp_path / "predictions"
+            dataframe.to_csv(data_path, index=False)
+
+            metadata = train_models(
+                data_path=data_path,
+                model_dir=model_dir,
+                output_dir=output_dir,
+                n_estimators=20,
+                n_neighbors=10,
+                contamination=0.05,
+                include_autoencoder=True,
+                autoencoder_epochs=1,
+                autoencoder_batch_size=16,
+                autoencoder_optimize_threshold=False,
+                autoencoder_device="cpu",
+            )
+
+            self.assertTrue((model_dir / "isolation_forest.joblib").exists())
+            self.assertTrue((model_dir / "lof.joblib").exists())
+            self.assertTrue((model_dir / "autoencoder.joblib").exists())
+            self.assertTrue((model_dir / "autoencoder_preprocessor.joblib").exists())
+            self.assertTrue((output_dir / "evaluation_autoencoder.json").exists())
+            self.assertIn("autoencoder", metadata["models"])
+            self.assertIn("autoencoder", metadata["model_parameters"])
+            self.assertEqual(
+                metadata["autoencoder"]["normal_rows_used_for_training"],
+                int(dataframe["is_anomaly"].eq(False).sum()),
+            )
+
+            expected_columns = {
+                "anomaly_label",
+                "anomaly_score",
+                "algorithm",
+            }
+            for algorithm in ["isolation_forest", "lof", "autoencoder"]:
+                output_path = predict_anomalies(
+                    algorithm=algorithm,
+                    data_path=data_path,
+                    model_dir=model_dir,
+                    output=prediction_dir / f"{algorithm}.csv",
+                )
+                predictions = pd.read_csv(output_path)
+
+                self.assertEqual(len(predictions), len(dataframe))
+                self.assertTrue(expected_columns <= set(predictions.columns))
+                self.assertEqual(set(predictions["algorithm"]), {algorithm})
+                self.assertTrue(set(predictions["anomaly_label"].unique()) <= {0, 1})
+                self.assertIn("business_rule_label", predictions.columns)
+                self.assertIn("business_rule_reasons", predictions.columns)
+
+                if algorithm == "autoencoder":
+                    self.assertIn("autoencoder_label", predictions.columns)
+                else:
+                    self.assertIn(f"{algorithm}_model_label", predictions.columns)
+
+            ensemble_output_path = predict_anomalies(
+                algorithm="ensemble",
+                data_path=data_path,
+                model_dir=model_dir,
+                output=prediction_dir / "ensemble.csv",
+            )
+            ensemble_predictions = pd.read_csv(ensemble_output_path)
+            if_label = ensemble_predictions["isolation_forest_label"].astype(int)
+            lof_label = ensemble_predictions["lof_label"].astype(int)
+            autoencoder_label = ensemble_predictions["autoencoder_label"].astype(int)
+            expected_consensus = (
+                (if_label.eq(1) & lof_label.eq(1))
+                | (autoencoder_label.eq(1) & if_label.eq(0) & lof_label.eq(0))
+            ).astype(int)
+            self.assertEqual(
+                ensemble_predictions["anomaly_label"].astype(int).tolist(),
+                expected_consensus.tolist(),
+            )
+            self.assertIn("classical_consensus_label", ensemble_predictions.columns)
+            self.assertIn("autoencoder_only_label", ensemble_predictions.columns)
+            self.assertFalse(
+                any(prediction_dir.glob("_ensemble_*.csv"))
+            )
 
 
 if __name__ == "__main__":

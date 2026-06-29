@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -13,8 +15,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from mauripay.features.geographic import add_geographic_features
+from mauripay.features.risk_signals import add_risk_signal_features
 from mauripay.features.temporal import add_flow_ratio_features, add_temporal_features
 
+
+logger = logging.getLogger(__name__)
 
 LABEL_COLUMNS = {
     "is_anomaly",
@@ -127,24 +132,50 @@ class TransactionFeatureEngineer:
     def _has_columns(df: pd.DataFrame, columns: set[str]) -> bool:
         return columns <= set(df.columns)
 
+    @staticmethod
+    def _log_layer_start(name: str, rows: int) -> float:
+        logger.info("Feature layer %s started rows=%s", name, rows)
+        return time.perf_counter()
+
+    @staticmethod
+    def _log_layer_completed(name: str, started_at: float) -> None:
+        logger.info(
+            "Feature layer %s completed in %.1fs",
+            name,
+            time.perf_counter() - started_at,
+        )
+
     def _add_project_features(self, df: pd.DataFrame, *, fit: bool) -> pd.DataFrame:
         """Add reusable project features before IDs are removed."""
         working = df.copy()
         applied_layers: list[str] = []
 
         if self._has_columns(working, {"sender_id", "timestamp", "amount"}):
+            started_at = self._log_layer_start("temporal", len(working))
             working = add_temporal_features(working)
+            self._log_layer_completed("temporal", started_at)
             applied_layers.append("temporal")
 
         if self._has_columns(working, {"sender_id", "receiver_id", "timestamp", "amount"}):
+            started_at = self._log_layer_start("flow_ratio", len(working))
             working = add_flow_ratio_features(working)
+            self._log_layer_completed("flow_ratio", started_at)
             applied_layers.append("flow_ratio")
 
         if self._has_columns(working, {"sender_wilaya", "receiver_wilaya"}):
+            started_at = self._log_layer_start("geographic", len(working))
             working = add_geographic_features(working)
+            self._log_layer_completed("geographic", started_at)
             applied_layers.append("geographic")
 
+        started_at = self._log_layer_start("risk_signals", len(working))
+        working = add_risk_signal_features(working)
+        self._log_layer_completed("risk_signals", started_at)
+        applied_layers.append("risk_signals")
+
+        started_at = self._log_layer_start("domain_risk", len(working))
         working = self._add_domain_risk_features(working)
+        self._log_layer_completed("domain_risk", started_at)
         applied_layers.append("risk")
 
         if fit:
@@ -235,6 +266,7 @@ class TransactionFeatureEngineer:
 
         working["domain_risk_score"] = risk
         return working
+
     def _prepare(self, df: pd.DataFrame) -> pd.DataFrame:
         working = self._add_project_features(df, fit=False)
         working = self._prepare_datetime_features(working, self.selection.datetime_columns)
@@ -355,7 +387,94 @@ class TransactionFeatureEngineer:
         )
 
     def fit_transform(self, df: pd.DataFrame) -> np.ndarray:
-        return self.fit(df).transform(df)
+        if df.empty:
+            raise ValueError("Cannot fit feature engineering on an empty dataset")
+
+        input_columns = list(df.columns)
+        enriched = self._add_project_features(df, fit=True)
+        enriched_columns = list(enriched.columns)
+        ignored = [
+            column
+            for column in enriched_columns
+            if self._is_id_column(column) or self._is_label_column(column)
+        ]
+        candidate_columns = [column for column in enriched_columns if column not in ignored]
+        datetime_columns = [
+            column
+            for column in candidate_columns
+            if self._is_datetime_like(enriched[column], column)
+        ]
+
+        self.selection.input_columns = input_columns
+        self.selection.ignored_columns = ignored + datetime_columns
+        self.selection.datetime_columns = datetime_columns
+        self.selection.derived_datetime_columns = [
+            derived
+            for column in datetime_columns
+            for derived in self._derived_names(column)
+        ]
+
+        prepared = self._prepare_datetime_features(enriched[candidate_columns], datetime_columns)
+
+        numerical_columns: list[str] = []
+        categorical_columns: list[str] = []
+
+        for column in prepared.columns:
+            series = self._truthy_to_number(prepared[column])
+            numeric_series = pd.to_numeric(series, errors="coerce")
+            if numeric_series.notna().sum() == 0:
+                categorical_columns.append(column)
+            elif pd.api.types.is_numeric_dtype(series) or numeric_series.notna().mean() >= 0.8:
+                prepared[column] = numeric_series
+                numerical_columns.append(column)
+            else:
+                categorical_columns.append(column)
+
+        if not numerical_columns and not categorical_columns:
+            raise ValueError("No usable numerical or categorical feature columns found")
+
+        self.selection.numerical_columns = numerical_columns
+        self.selection.categorical_columns = categorical_columns
+
+        for column in numerical_columns:
+            prepared[column] = pd.to_numeric(prepared[column], errors="coerce")
+
+        for column in categorical_columns:
+            prepared[column] = prepared[column].fillna("UNKNOWN").astype(str)
+
+        self._preprocessor = ColumnTransformer(
+            transformers=[
+                (
+                    "num",
+                    Pipeline(
+                        steps=[
+                            ("imputer", SimpleImputer(strategy="median")),
+                            ("scaler", StandardScaler()),
+                        ]
+                    ),
+                    numerical_columns,
+                ),
+                (
+                    "cat",
+                    Pipeline(
+                        steps=[
+                            ("imputer", SimpleImputer(strategy="constant", fill_value="UNKNOWN")),
+                            (
+                                "encoder",
+                                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                            ),
+                        ]
+                    ),
+                    categorical_columns,
+                ),
+            ],
+            remainder="drop",
+        )
+        transformed = self._preprocessor.fit_transform(
+            prepared[numerical_columns + categorical_columns]
+        )
+        self.selection.feature_names = self.feature_names
+        return transformed
 
     @property
     def feature_names(self) -> list[str]:

@@ -502,10 +502,10 @@ def generate_transactions(
 
     start = parse_utc_datetime(start_date, end_of_day=False)
     end = parse_utc_datetime(end_date, end_of_day=True)
-    now = datetime.now(timezone.utc)
+    # now = datetime.now(timezone.utc)
 
-    if end > now:
-        end = now
+    # if end > now:
+    #     end = now
 
     if start >= end:
         raise ValueError("start_date doit être avant end_date")

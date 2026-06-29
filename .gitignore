@@ -19,7 +19,9 @@ backend/data/*.csv
 backend/data/generated/*
 data_generated/
 *.parquet
-backend/models/*
+backend/dist/*
+# backend/models/*
+backend/string/*
 backend/outputs/*
 models/*
 outputs/*
@@ -29,6 +31,7 @@ outputs/*
 !data/generated/.gitkeep
 !backend/data/generated/
 !backend/data/generated/.gitkeep
+!backend/dist/
 !backend/models/
 !backend/models/.gitkeep
 !backend/outputs/
@@ -44,3 +47,8 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.log
