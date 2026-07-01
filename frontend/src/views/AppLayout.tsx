@@ -104,10 +104,9 @@ const analysisGroups = [
 ];
 
 const sidebarVariants: Variants = {
-  hidden: { opacity: 0, x: -30 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    x: 0,
     transition: {
       delayChildren: 0.12,
       duration: 0.55,
