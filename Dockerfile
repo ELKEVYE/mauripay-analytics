@@ -15,5 +15,6 @@ RUN mkdir -p data/uploads data/generated models outputs
 ENV PYTHONPATH=/app/src
 
 EXPOSE 7860
+# deploy
 
 CMD ["python", "-m", "uvicorn", "mauripay.api.main:app", "--host", "0.0.0.0", "--port", "7860"]
