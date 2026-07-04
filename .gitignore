@@ -37,6 +37,8 @@ outputs/*
 !backend/dist/
 !backend/models/
 !backend/models/.gitkeep
+!backend/models/*.joblib
+!backend/models/*.json
 !backend/outputs/
 !backend/outputs/.gitkeep
 !models/

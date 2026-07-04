@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /
 
 COPY src/ ./src/
 COPY pyproject.toml .
+COPY models/ ./models/
 
 RUN pip install --no-cache-dir -e .
 

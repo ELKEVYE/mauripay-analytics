@@ -21,6 +21,7 @@ jobs:
           mkdir -p /tmp/hf-deploy
           cp -r backend/src /tmp/hf-deploy/src
           cp backend/pyproject.toml /tmp/hf-deploy/
+          cp -r backend/models /tmp/hf-deploy/models
           cp Dockerfile /tmp/hf-deploy/
           cp README.md /tmp/hf-deploy/
           cp backend/README.md /tmp/hf-deploy/backend-README.md 2>/dev/null || true
