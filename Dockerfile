@@ -4,13 +4,14 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 
-COPY backend/ ./backend/
+COPY src/ ./src/
+COPY pyproject.toml .
 
-RUN pip install --no-cache-dir -e ./backend/
+RUN pip install --no-cache-dir -e .
 
 RUN mkdir -p data/uploads data/generated models outputs
 
-ENV PYTHONPATH=/app/backend/src
+ENV PYTHONPATH=/app/src
 
 EXPOSE 7860
 
