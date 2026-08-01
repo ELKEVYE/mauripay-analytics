@@ -57,3 +57,6 @@ Thumbs.db
 frontend/node_modules/
 frontend/dist/
 frontend/*.log
+
+# Documentation Sphinx generee
+docs/_build/
