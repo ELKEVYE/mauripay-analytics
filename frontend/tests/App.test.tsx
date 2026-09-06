@@ -22,12 +22,10 @@ test("renders dashboard cards and navigates between analysis pages", async () =>
   expect(screen.getAllByText("MauriPay Analytics").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Transactions").length).toBeGreaterThan(0);
   expect(screen.getByText("Montant total")).toBeInTheDocument();
-  expect(screen.getByText("Consensus des trois modèles")).toBeInTheDocument();
+  expect(screen.getByText("Fraudes détectées")).toBeInTheDocument();
   expect(screen.getAllByText("Taux d'échec").length).toBeGreaterThan(0);
   expect(screen.getByText("Fichier de transactions")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Actualiser les données" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Réduire la sidebar" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Activer le mode sombre" })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Réduire la sidebar" }));
   expect(screen.getByRole("button", { name: "Agrandir la sidebar" })).toBeInTheDocument();
@@ -35,14 +33,11 @@ test("renders dashboard cards and navigates between analysis pages", async () =>
   expect(screen.getByTestId("app-header")).toHaveClass("lg:left-20");
   expect(screen.getByTestId("app-content")).toHaveClass("lg:pl-20");
 
-  await user.click(screen.getByRole("button", { name: "Activer le mode sombre" }));
-  expect(screen.getByRole("button", { name: "Activer le mode clair" })).toBeInTheDocument();
-
   await user.click(screen.getByRole("button", { name: "0 anomalies détectées" }));
   expect(screen.getByText("Notifications")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Voir les anomalies" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Voir les transactions suspectes" })).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /Operations/ }));
+  await user.click(screen.getByRole("button", { name: /Opérations/ }));
   expect(screen.getByText("Heatmap horaire")).toBeInTheDocument();
   expect(screen.queryByText("Fichier de transactions")).not.toBeInTheDocument();
   expect(screen.queryByText("Montant total")).not.toBeInTheDocument();

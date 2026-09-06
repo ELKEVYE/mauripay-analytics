@@ -1,6 +1,7 @@
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
 import { MapPinned } from "lucide-react";
 import type { GeoWilaya } from "../api/client";
+import { CHART } from "./ChartKit";
 
 const WILAYA_COORDINATES: Record<string, [number, number]> = {
   "Nouakchott-Ouest": [18.083, -15.978],
@@ -35,17 +36,28 @@ export function GeoMap({ wilayas, compact = false }: GeoMapProps) {
 
   return (
     <section
-      className={`dashboard-card overflow-hidden border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/40 ${
+      className={`dashboard-card overflow-hidden ${
         compact ? "geo-map-compact flex min-h-[380px] flex-col lg:min-h-0" : ""
       }`}
     >
-      <header className={`flex shrink-0 items-start gap-3 border-b border-slate-200/80 bg-white/70 ${compact ? "px-3 py-3" : "px-4 py-3.5"}`}>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-emerald-50 text-mauri-green">
-          <MapPinned className="h-[18px] w-[18px]" aria-hidden="true" />
+      <header
+        className={`flex shrink-0 items-start gap-3 border-b border-hairline ${
+          compact ? "px-3 py-3" : "px-4 py-3.5"
+        }`}
+      >
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-anchor-weak text-anchor"
+          aria-hidden="true"
+        >
+          <MapPinned className="h-[18px] w-[18px]" />
         </span>
         <div>
-          <h2 className={`${compact ? "text-sm" : "text-base"} font-extrabold text-ink`}>Carte des wilayas</h2>
-          <p className="mt-0.5 text-xs font-medium text-slate-500">Volume et anomalies par zone</p>
+          <h2 className={`${compact ? "text-sm" : "text-[15px]"} font-semibold text-ink`}>
+            Carte des wilayas
+          </h2>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            Taille = volume · rouge = concentration d'anomalies
+          </p>
         </div>
       </header>
       <MapContainer
@@ -55,14 +67,15 @@ export function GeoMap({ wilayas, compact = false }: GeoMapProps) {
         scrollWheelZoom={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         {wilayas.map((item) => {
           const position = WILAYA_COORDINATES[item.wilaya];
           if (!position) return null;
           const anomalyRatio = item.anomalies_count / maxAnomalies;
-          const markerColor = anomalyRatio > 0.65 ? "#dc2626" : anomalyRatio > 0.25 ? "#f59e0b" : "#4338ca";
+          const elevated = anomalyRatio > 0.5;
+          const markerColor = elevated ? CHART.alert : CHART.anchor;
 
           return (
             <CircleMarker
@@ -71,13 +84,13 @@ export function GeoMap({ wilayas, compact = false }: GeoMapProps) {
               pathOptions={{
                 color: markerColor,
                 fillColor: markerColor,
-                fillOpacity: 0.5,
-                opacity: 0.95,
-                weight: 3,
+                fillOpacity: elevated ? 0.45 : 0.28,
+                opacity: 0.9,
+                weight: 2,
               }}
-              radius={7 + (item.transactions / maxTransactions) * 20}
+              radius={6 + (item.transactions / maxTransactions) * 20}
             >
-              <Tooltip direction="top" opacity={0.95}>
+              <Tooltip direction="top" opacity={1}>
                 <div className="text-xs">
                   <strong>{item.wilaya}</strong>
                   <br />
@@ -87,13 +100,13 @@ export function GeoMap({ wilayas, compact = false }: GeoMapProps) {
                 </div>
               </Tooltip>
               <Popup>
-                <div className="min-w-[190px] text-sm">
+                <div className="min-w-[190px] text-[13px]">
                   <strong className="text-ink">{item.wilaya}</strong>
-                  <div className="mt-2 grid gap-1 text-slate-600">
-                    <span>Transactions: {formatNumber(item.transactions)}</span>
-                    <span>Montant: {formatAmount(item.total_amount)}</span>
-                    <span>Anomalies: {formatNumber(item.anomalies_count)}</span>
-                    <span>Taux d'echec: {formatPercent(item.failure_rate)}</span>
+                  <div className="mt-2 grid gap-1 text-ink-muted">
+                    <span>Transactions : {formatNumber(item.transactions)}</span>
+                    <span>Montant : {formatAmount(item.total_amount)}</span>
+                    <span>Anomalies : {formatNumber(item.anomalies_count)}</span>
+                    <span>Taux d'échec : {formatPercent(item.failure_rate)}</span>
                   </div>
                 </div>
               </Popup>

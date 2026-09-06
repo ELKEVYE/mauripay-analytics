@@ -7,7 +7,6 @@ import {
   BarChart3,
   Cable,
   CalendarDays,
-  Clock3,
   Donut,
   MapPinned,
   TrendingUp,
@@ -29,6 +28,7 @@ import type { ApiSnapshot, GeoWilaya, ModelPredictionResult } from "../api/clien
 import { DataTable } from "../components/DataTable";
 import { GeoMap } from "../components/GeoMap";
 import { HourlyHeatmap } from "../components/HourlyHeatmap";
+import { CHART, ChartTooltip, axisProps, tooltipCursor } from "../components/ChartKit";
 import { AnomaliesView } from "./AnomaliesView";
 
 type SnapshotProps = {
@@ -44,45 +44,23 @@ type AnomalyAnalysisViewProps = SnapshotProps & {
   results: ModelPredictionResult[];
 };
 
-const axisStyle = {
-  axisLine: false,
-  tickLine: false,
-  tick: { fill: "#64748b", fontSize: 11 },
-};
-
+/** Headers are neutral (anchor) unless the card is about detected anomalies. */
 const headerToneClasses = {
-  blue: "bg-blue-50 text-blue-600",
-  green: "bg-emerald-50 text-mauri-green",
-  orange: "bg-orange-50 text-orange-600",
-  red: "bg-rose-50 text-rose-600",
-  violet: "bg-violet-50 text-violet-600",
+  anchor: "bg-anchor-weak text-anchor",
+  alert: "bg-alert-weak text-alert",
 };
 
-const anomalyGridVariants: Variants = {
+const gridVariants: Variants = {
   hidden: {},
-  visible: {
-    transition: {
-      delayChildren: 0.08,
-      staggerChildren: 0.11,
-    },
-  },
+  visible: { transition: { delayChildren: 0.04, staggerChildren: 0.07 } },
 };
 
-const anomalyCardVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.985 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
-  },
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] } },
 };
 
-const anomalyCardHover = {
-  y: -4,
-  boxShadow: "0 18px 34px -24px rgba(15, 23, 42, 0.38)",
-  transition: { duration: 0.22, ease: "easeOut" as const },
-};
+const cardHover = { y: -1, transition: { duration: 0.14, ease: "easeOut" as const } };
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("fr-FR").format(Math.round(value));
@@ -103,7 +81,7 @@ function entriesToChart(data: Record<string, number>) {
 function countByField<T extends Record<string, unknown>>(rows: T[], field: keyof T) {
   return rows.reduce<Record<string, number>>((accumulator, row) => {
     const rawValue = row[field];
-    const key = typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : "Non renseigne";
+    const key = typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : "Non renseigné";
     accumulator[key] = (accumulator[key] ?? 0) + 1;
     return accumulator;
   }, {});
@@ -121,55 +99,52 @@ function ChartHeader({
   title,
   description,
   icon: Icon,
-  tone,
+  tone = "anchor",
 }: {
   title: string;
   description: string;
   icon: typeof TrendingUp;
-  tone: keyof typeof headerToneClasses;
+  tone?: keyof typeof headerToneClasses;
 }) {
   return (
     <header className="mb-3 flex items-start gap-3">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded ${headerToneClasses[tone]}`}>
-        <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${headerToneClasses[tone]}`}
+        aria-hidden="true"
+      >
+        <Icon className="h-[18px] w-[18px]" />
       </span>
       <div>
-        <h2 className="text-sm font-extrabold text-ink">{title}</h2>
-        <p className="mt-0.5 text-xs font-medium text-slate-500">{description}</p>
+        <h2 className="text-[13px] font-semibold text-ink">{title}</h2>
+        <p className="mt-0.5 text-xs text-ink-muted">{description}</p>
       </div>
     </header>
   );
 }
 
-function AnomalyBadge({ value }: { value: number }) {
-  const tone =
-    value >= 150
-      ? "bg-rose-50 text-rose-700 ring-rose-100"
-      : value >= 50
-        ? "bg-orange-50 text-orange-700 ring-orange-100"
-        : "bg-emerald-50 text-emerald-700 ring-emerald-100";
-
+function SeverityBadge({ label, level }: { label: string; level: 0 | 1 | 2 }) {
+  const cls =
+    level === 2
+      ? "bg-alert-weak text-alert ring-alert/25"
+      : level === 1
+        ? "bg-alert-weak/60 text-alert ring-alert/15"
+        : "bg-anchor-weak text-anchor ring-anchor/15";
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-extrabold ring-1 ${tone}`}>
-      {formatNumber(value)}
+    <span className={`tnum inline-flex rounded-full px-2 py-1 text-xs font-semibold ring-1 ${cls}`}>
+      {label}
     </span>
   );
 }
 
+function AnomalyBadge({ value }: { value: number }) {
+  const level = value >= 150 ? 2 : value >= 50 ? 1 : 0;
+  return <SeverityBadge label={formatNumber(value)} level={level} />;
+}
+
 function FailureBadge({ value }: { value: number }) {
   const percent = value * 100;
-  const tone =
-    percent >= 0.6
-      ? "bg-rose-50 text-rose-700 ring-rose-100"
-      : percent >= 0.4
-        ? "bg-orange-50 text-orange-700 ring-orange-100"
-        : "bg-emerald-50 text-emerald-700 ring-emerald-100";
-
-  return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-extrabold ring-1 ${tone}`}>
-      {formatPercent(value)}
-    </span>
-  );
+  const level = percent >= 0.6 ? 2 : percent >= 0.4 ? 1 : 0;
+  return <SeverityBadge label={formatPercent(value)} level={level} />;
 }
 
 export function TransactionsAnalysisView({ activeSubPage, snapshot }: TransactionAnalysisViewProps) {
@@ -182,260 +157,275 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
     [snapshot?.stats.by_channel],
   );
   const operatorRows = useMemo(
-    () => [...(snapshot?.timeseries.volume_by_operator ?? [])].sort((a, b) => b.transactions - a.transactions),
+    () =>
+      [...(snapshot?.timeseries.volume_by_operator ?? [])].sort(
+        (a, b) => b.transactions - a.transactions,
+      ),
     [snapshot?.timeseries.volume_by_operator],
   );
   const wilayas = useMemo(
     () => topTransactionsWilayas(snapshot?.geo.wilayas ?? []),
     [snapshot?.geo.wilayas],
   );
+
   return (
     <section className="flex flex-col gap-4" aria-label="Analyse des transactions">
       {activeSubPage === "temporal" ? (
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="dashboard-card chart-card min-h-[310px] border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/35">
-          <ChartHeader
-            description="Evolution quotidienne du volume traite"
-            icon={TrendingUp}
-            title="Transactions par jour"
-            tone="green"
-          />
-          <div className="min-h-[205px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={snapshot?.timeseries.transactions_by_day ?? []} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="transactionsOnlyGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.32} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.03} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
-                <XAxis dataKey="day" minTickGap={30} {...axisStyle} />
-                <YAxis {...axisStyle} />
-                <Tooltip />
-                <Area
-                  activeDot={{ r: 5, stroke: "#ffffff", strokeWidth: 2 }}
-                  dataKey="transactions"
-                  dot={{ r: 2, strokeWidth: 1 }}
-                  fill="url(#transactionsOnlyGradient)"
-                  stroke="#4f46e5"
-                  strokeWidth={2.5}
-                  type="monotone"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <motion.div
+          className="grid gap-4 lg:grid-cols-2"
+          initial="hidden"
+          animate="visible"
+          variants={gridVariants}
+        >
+          <motion.div className="dashboard-card chart-card min-h-[310px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Évolution quotidienne du volume traité"
+              icon={TrendingUp}
+              title="Transactions par jour"
+            />
+            <div className="min-h-[205px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={snapshot?.timeseries.transactions_by_day ?? []}
+                  margin={{ top: 8, right: 14, left: -8, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="areaAnchor" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor={CHART.anchor} stopOpacity={0.16} />
+                      <stop offset="100%" stopColor={CHART.anchor} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={CHART.grid} vertical={false} />
+                  <XAxis dataKey="day" minTickGap={30} {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Area
+                    activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                    dataKey="transactions"
+                    dot={false}
+                    fill="url(#areaAnchor)"
+                    stroke={CHART.anchor}
+                    strokeWidth={2}
+                    type="monotone"
+                    animationDuration={700}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
 
-        <div className="dashboard-card chart-card min-h-[310px] border-orange-100 bg-gradient-to-br from-white via-white to-orange-50/35">
-          <ChartHeader
-            description="Montants observes par jour"
-            icon={Banknote}
-            title="Montants par jour"
-            tone="orange"
-          />
-          <div className="min-h-[205px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={snapshot?.timeseries.amounts_by_day ?? []} margin={{ top: 8, right: 14, left: 5, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="amountsOnlyGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.36} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
-                <XAxis dataKey="day" minTickGap={30} {...axisStyle} />
-                <YAxis width={70} {...axisStyle} />
-                <Tooltip />
-                <Area
-                  activeDot={{ r: 5, stroke: "#ffffff", strokeWidth: 2 }}
-                  dataKey="total_amount"
-                  dot={{ r: 2, strokeWidth: 1 }}
-                  fill="url(#amountsOnlyGradient)"
-                  stroke="#f59e0b"
-                  strokeWidth={2.5}
-                  type="monotone"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+          <motion.div className="dashboard-card chart-card min-h-[310px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Montants observés par jour"
+              icon={Banknote}
+              title="Montants par jour"
+            />
+            <div className="min-h-[205px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={snapshot?.timeseries.amounts_by_day ?? []}
+                  margin={{ top: 8, right: 14, left: 5, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="areaAccent" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor={CHART.accent} stopOpacity={0.18} />
+                      <stop offset="100%" stopColor={CHART.accent} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={CHART.grid} vertical={false} />
+                  <XAxis dataKey="day" minTickGap={30} {...axisProps} />
+                  <YAxis width={70} {...axisProps} />
+                  <Tooltip content={<ChartTooltip format={(v) => formatAmount(v)} />} cursor={tooltipCursor} />
+                  <Area
+                    activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                    dataKey="total_amount"
+                    dot={false}
+                    fill="url(#areaAccent)"
+                    stroke={CHART.accent}
+                    strokeWidth={2}
+                    type="monotone"
+                    animationDuration={700}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        </motion.div>
       ) : null}
 
       {activeSubPage === "operations" ? (
-      <div className="grid gap-4 lg:grid-cols-2">
-        <HourlyHeatmap compact rows={snapshot?.timeseries.hourly_heatmap ?? []} />
+        <motion.div
+          className="grid gap-4 lg:grid-cols-2"
+          initial="hidden"
+          animate="visible"
+          variants={gridVariants}
+        >
+          <HourlyHeatmap compact rows={snapshot?.timeseries.hourly_heatmap ?? []} />
 
-        <div className="dashboard-card chart-card min-h-[360px] border-blue-100 bg-gradient-to-br from-white via-white to-blue-50/45">
-          <ChartHeader
-            description="Transactions traitees par operateur"
-            icon={BarChart3}
-            title="Volume par operateur"
-            tone="blue"
-          />
-          <div className="min-h-[255px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                barCategoryGap={10}
-                data={operatorRows}
-                layout="vertical"
-                margin={{ top: 4, right: 58, left: 8, bottom: 0 }}
-              >
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" horizontal={false} />
-                <XAxis type="number" {...axisStyle} />
-                <YAxis dataKey="operator" type="category" width={120} {...axisStyle} />
-                <Tooltip />
-                <Bar dataKey="transactions" fill="#7c3aed" radius={[0, 8, 8, 0]} barSize={14}>
-                  <LabelList
-                    className="fill-slate-600 text-[11px] font-bold"
-                    dataKey="transactions"
-                    formatter={(value: number) => formatNumber(value)}
-                    position="right"
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="dashboard-card chart-card min-h-[360px] border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/45">
-          <ChartHeader
-            description="Part des transactions par categorie"
-            icon={Donut}
-            title="Repartition par type"
-            tone="violet"
-          />
-          <div className="flex min-h-[255px] flex-1 items-center justify-center">
-            <Plot
-              config={{ displayModeBar: false, responsive: true }}
-              data={[
-                {
-                  labels: typeChart.map((item) => item.name),
-                  values: typeChart.map((item) => item.value),
-                  type: "pie",
-                  hole: 0.58,
-                  textinfo: "percent",
-                  textposition: "outside",
-                  hovertemplate: "%{label}<br>%{value:,} transactions<br>%{percent}<extra></extra>",
-                  marker: {
-                    colors: ["#4338ca", "#f59e0b", "#e11d48", "#2563eb", "#64748b", "#7c3aed"],
-                    line: { color: "#ffffff", width: 3 },
-                  },
-                },
-              ]}
-              layout={{
-                autosize: true,
-                margin: { l: 8, r: 8, t: 8, b: 8 },
-                paper_bgcolor: "transparent",
-                plot_bgcolor: "transparent",
-                showlegend: true,
-                legend: {
-                  orientation: "v",
-                  x: 1,
-                  y: 0.5,
-                  xanchor: "left",
-                  font: { size: 11, color: "#334155" },
-                },
-              }}
-              useResizeHandler
-              style={{ width: "100%", height: "100%" }}
+          <motion.div className="dashboard-card chart-card min-h-[360px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Transactions traitées par opérateur"
+              icon={BarChart3}
+              title="Volume par opérateur"
             />
-          </div>
-        </div>
+            <div className="min-h-[255px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  barCategoryGap={10}
+                  data={operatorRows}
+                  layout="vertical"
+                  margin={{ top: 4, right: 58, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid stroke={CHART.grid} horizontal={false} />
+                  <XAxis type="number" {...axisProps} />
+                  <YAxis dataKey="operator" type="category" width={120} {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Bar dataKey="transactions" fill={CHART.anchor} radius={[0, 3, 3, 0]} barSize={13} animationDuration={700}>
+                    <LabelList
+                      className="fill-ink-muted text-[11px] font-medium"
+                      dataKey="transactions"
+                      formatter={(value: number) => formatNumber(value)}
+                      position="right"
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
 
-        <div className="dashboard-card chart-card min-h-[360px] border-teal-100 bg-gradient-to-br from-white via-white to-teal-50/45">
-          <ChartHeader
-            description="Volume par canal de transaction"
-            icon={Cable}
-            title="Canaux utilises"
-            tone="green"
-          />
-          <div className="min-h-[255px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart barCategoryGap={28} data={channelChart} margin={{ top: 8, right: 24, left: -4, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="transactionChannelsGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.8} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
-                <XAxis dataKey="name" {...axisStyle} />
-                <YAxis {...axisStyle} />
-                <Tooltip />
-                <Bar dataKey="value" fill="url(#transactionChannelsGradient)" radius={[8, 8, 2, 2]} maxBarSize={82}>
-                  <LabelList
-                    className="fill-slate-600 text-[11px] font-bold"
-                    dataKey="value"
-                    formatter={(value: number) => formatNumber(value)}
-                    position="top"
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+          <motion.div className="dashboard-card chart-card min-h-[360px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Part des transactions par catégorie"
+              icon={Donut}
+              title="Répartition par type"
+            />
+            <div className="flex min-h-[255px] flex-1 items-center justify-center">
+              <Plot
+                config={{ displayModeBar: false, responsive: true }}
+                data={[
+                  {
+                    labels: typeChart.map((item) => item.name),
+                    values: typeChart.map((item) => item.value),
+                    type: "pie",
+                    hole: 0.62,
+                    textinfo: "percent",
+                    textposition: "outside",
+                    hovertemplate: "%{label}<br>%{value:,} transactions<br>%{percent}<extra></extra>",
+                    marker: {
+                      colors: [...CHART.anchorRamp],
+                      line: { color: "#ffffff", width: 2 },
+                    },
+                  },
+                ]}
+                layout={{
+                  autosize: true,
+                  margin: { l: 8, r: 8, t: 8, b: 8 },
+                  paper_bgcolor: "transparent",
+                  plot_bgcolor: "transparent",
+                  font: { family: '"IBM Plex Sans", sans-serif', color: CHART.axis },
+                  showlegend: true,
+                  legend: {
+                    orientation: "v",
+                    x: 1,
+                    y: 0.5,
+                    xanchor: "left",
+                    font: { size: 11, color: CHART.axis },
+                  },
+                }}
+                useResizeHandler
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
+          </motion.div>
+
+          <motion.div className="dashboard-card chart-card min-h-[360px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Volume par canal de transaction"
+              icon={Cable}
+              title="Canaux utilisés"
+            />
+            <div className="min-h-[255px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart barCategoryGap={28} data={channelChart} margin={{ top: 8, right: 24, left: -4, bottom: 0 }}>
+                  <CartesianGrid stroke={CHART.grid} vertical={false} />
+                  <XAxis dataKey="name" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Bar dataKey="value" fill={CHART.anchor} radius={[3, 3, 0, 0]} maxBarSize={72} animationDuration={700}>
+                    <LabelList
+                      className="fill-ink-muted text-[11px] font-medium"
+                      dataKey="value"
+                      formatter={(value: number) => formatNumber(value)}
+                      position="top"
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        </motion.div>
       ) : null}
 
       {activeSubPage === "geography" ? (
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="dashboard-card chart-card min-h-[345px] border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/40">
-          <ChartHeader
-            description="Wilayas avec le plus grand volume"
-            icon={MapPinned}
-            title="Transactions par wilaya"
-            tone="green"
-          />
-          <div className="min-h-[240px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={wilayas} layout="vertical" margin={{ top: 4, right: 62, left: 8, bottom: 0 }}>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" horizontal={false} />
-                <XAxis type="number" {...axisStyle} />
-                <YAxis dataKey="wilaya" type="category" width={132} {...axisStyle} />
-                <Tooltip formatter={(value) => formatNumber(Number(value))} />
-                <Bar dataKey="transactions" fill="#4338ca" radius={[0, 8, 8, 0]} barSize={14}>
-                  <LabelList
-                    className="fill-slate-600 text-[11px] font-bold"
-                    dataKey="transactions"
-                    formatter={(value: number) => formatNumber(value)}
-                    position="right"
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <motion.div
+          className="grid gap-4 lg:grid-cols-2"
+          initial="hidden"
+          animate="visible"
+          variants={gridVariants}
+        >
+          <motion.div className="dashboard-card chart-card min-h-[345px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Wilayas avec le plus grand volume"
+              icon={MapPinned}
+              title="Transactions par wilaya"
+            />
+            <div className="min-h-[240px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={wilayas} layout="vertical" margin={{ top: 4, right: 62, left: 8, bottom: 0 }}>
+                  <CartesianGrid stroke={CHART.grid} horizontal={false} />
+                  <XAxis type="number" {...axisProps} />
+                  <YAxis dataKey="wilaya" type="category" width={132} {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Bar dataKey="transactions" fill={CHART.anchor} radius={[0, 3, 3, 0]} barSize={13} animationDuration={700}>
+                    <LabelList
+                      className="fill-ink-muted text-[11px] font-medium"
+                      dataKey="transactions"
+                      formatter={(value: number) => formatNumber(value)}
+                      position="right"
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          <GeoMap compact wilayas={snapshot?.geo.wilayas ?? []} />
+
+          <div className="lg:col-span-2">
+            <DataTable
+              columns={[
+                { key: "wilaya", label: "Wilaya" },
+                {
+                  key: "transactions",
+                  label: "Transactions",
+                  render: (row) => <span className="tnum">{formatNumber(Number(row.transactions))}</span>,
+                },
+                {
+                  key: "total_amount",
+                  label: "Montant",
+                  render: (row) => <span className="tnum">{formatAmount(Number(row.total_amount))}</span>,
+                },
+                {
+                  key: "failure_rate",
+                  label: "Taux d'échec",
+                  render: (row) => <FailureBadge value={Number(row.failure_rate)} />,
+                },
+              ]}
+              rows={wilayas}
+              title="Wilayas principales"
+            />
           </div>
-        </div>
-
-        <GeoMap compact wilayas={snapshot?.geo.wilayas ?? []} />
-
-        <div className="lg:col-span-2">
-          <DataTable
-            columns={[
-              { key: "wilaya", label: "Wilaya" },
-              {
-                key: "transactions",
-                label: "Transactions",
-                render: (row) => formatNumber(Number(row.transactions)),
-              },
-              {
-                key: "total_amount",
-                label: "Montant",
-                render: (row) => formatAmount(Number(row.total_amount)),
-              },
-              {
-                key: "failure_rate",
-                label: "Taux d'echec",
-                render: (row) => <FailureBadge value={Number(row.failure_rate)} />,
-              },
-            ]}
-            rows={wilayas}
-            tone="green"
-            title="Wilayas principales"
-          />
-        </div>
-      </div>
+        </motion.div>
       ) : null}
     </section>
   );
@@ -464,306 +454,249 @@ export function AnomalyAnalysisView({ activeSubPage, snapshot, results }: Anomal
   return (
     <section className="flex flex-col gap-4" aria-label="Analyse des anomalies">
       {activeSubPage === "temporal" ? (
-      <motion.div
-        animate="visible"
-        className="grid gap-4 lg:grid-cols-2"
-        initial="hidden"
-        variants={anomalyGridVariants}
-      >
         <motion.div
-          className="dashboard-card chart-card min-h-[310px] border-rose-100 bg-gradient-to-br from-white via-white to-rose-50/45"
-          variants={anomalyCardVariants}
-          whileHover={anomalyCardHover}
+          animate="visible"
+          className="grid gap-4 lg:grid-cols-2"
+          initial="hidden"
+          variants={gridVariants}
         >
-          <ChartHeader
-            description="Repartition horaire des transactions suspectes"
-            icon={AlertTriangle}
-            title="Anomalies par heure"
-            tone="red"
-          />
-          <div className="min-h-[205px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={snapshot?.timeseries.anomalies_by_hour ?? []} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="anomalyHoursGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#e11d48" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fb7185" stopOpacity={0.65} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
-                <XAxis dataKey="hour" {...axisStyle} />
-                <YAxis {...axisStyle} />
-                <Tooltip />
-                <Bar
-                  animationBegin={180}
-                  animationDuration={850}
-                  animationEasing="ease-out"
-                  dataKey="anomalies"
-                  fill="url(#anomalyHoursGradient)"
-                  isAnimationActive
-                  radius={[6, 6, 2, 2]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+          <motion.div className="dashboard-card chart-card min-h-[310px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Répartition horaire des transactions suspectes"
+              icon={AlertTriangle}
+              title="Anomalies par heure"
+              tone="alert"
+            />
+            <div className="min-h-[205px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={snapshot?.timeseries.anomalies_by_hour ?? []} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
+                  <CartesianGrid stroke={CHART.grid} vertical={false} />
+                  <XAxis dataKey="hour" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Bar
+                    animationDuration={700}
+                    dataKey="anomalies"
+                    fill={CHART.alert}
+                    radius={[3, 3, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
 
-        <motion.div
-          className="dashboard-card chart-card min-h-[310px] border-violet-100 bg-gradient-to-br from-white via-white to-violet-50/40"
-          variants={anomalyCardVariants}
-          whileHover={anomalyCardHover}
-        >
-          <ChartHeader
-            description="Evolution hebdomadaire des anomalies"
-            icon={CalendarDays}
-            title="Anomalies par semaine"
-            tone="violet"
-          />
-          <div className="min-h-[205px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={snapshot?.timeseries.anomalies_by_week ?? []} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="anomalyWeeksGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#dc2626" stopOpacity={0.32} />
-                    <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
-                <XAxis dataKey="week" minTickGap={30} {...axisStyle} />
-                <YAxis {...axisStyle} />
-                <Tooltip />
-                <Area
-                  activeDot={{ r: 5, stroke: "#ffffff", strokeWidth: 2 }}
-                  animationBegin={220}
-                  animationDuration={1000}
-                  animationEasing="ease-out"
-                  dataKey="anomalies"
-                  dot={{ r: 2, strokeWidth: 1 }}
-                  fill="url(#anomalyWeeksGradient)"
-                  stroke="#dc2626"
-                  strokeWidth={2.5}
-                  type="monotone"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+          <motion.div className="dashboard-card chart-card min-h-[310px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Évolution hebdomadaire des anomalies"
+              icon={CalendarDays}
+              title="Anomalies par semaine"
+              tone="alert"
+            />
+            <div className="min-h-[205px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={snapshot?.timeseries.anomalies_by_week ?? []} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="areaAlert" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor={CHART.alert} stopOpacity={0.16} />
+                      <stop offset="100%" stopColor={CHART.alert} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={CHART.grid} vertical={false} />
+                  <XAxis dataKey="week" minTickGap={30} {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Area
+                    activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                    animationDuration={800}
+                    dataKey="anomalies"
+                    dot={false}
+                    fill="url(#areaAlert)"
+                    stroke={CHART.alert}
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
 
-        <motion.div
-          className="dashboard-card min-h-[360px] border-rose-100 bg-gradient-to-br from-white via-white to-rose-50/35"
-          variants={anomalyCardVariants}
-          whileHover={anomalyCardHover}
-        >
-          <ChartHeader
-            description="Types presents parmi les anomalies detectees"
-            icon={Donut}
-            title="Profil des alertes"
-            tone="red"
-          />
-          <div className="grid flex-1 gap-3">
-            <div className="rounded-2xl border border-rose-100 bg-white/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-rose-500">Total alertes classees</p>
-              <div className="mt-2 flex items-end justify-between gap-3">
-                <p className="text-3xl font-black text-rose-700">{formatNumber(anomalyTypeTotal)}</p>
-                <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">
-                  Ensemble
-                </span>
+          <motion.div className="dashboard-card min-h-[360px] p-4" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Types présents parmi les anomalies détectées"
+              icon={Donut}
+              title="Profil des alertes"
+              tone="alert"
+            />
+            <div className="grid flex-1 gap-3">
+              <div className="rounded-xl border border-hairline bg-canvas p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+                  Total alertes classées
+                </p>
+                <div className="mt-2 flex items-end justify-between gap-3">
+                  <p className="tnum text-[1.75rem] font-semibold text-alert">{formatNumber(anomalyTypeTotal)}</p>
+                  <span className="rounded-full border border-hairline px-2.5 py-1 text-xs font-medium text-ink-muted">
+                    Consensus
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {typeChart.map((item, index) => {
+                  const percent = anomalyTypeTotal > 0 ? (item.value / anomalyTypeTotal) * 100 : 0;
+                  const barColor = index === 0 ? CHART.alert : index === 1 ? CHART.alertRamp[1] : CHART.muted;
+
+                  return (
+                    <div
+                      className="rounded-xl border border-hairline bg-surface p-3"
+                      key={item.name}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-semibold text-ink">{item.name}</p>
+                          <p className="tnum text-xs text-ink-muted">{percent.toFixed(1)} % des alertes</p>
+                        </div>
+                        <span className="tnum rounded-full bg-alert-weak px-2.5 py-1 text-xs font-semibold text-alert ring-1 ring-alert/15">
+                          {formatNumber(item.value)}
+                        </span>
+                      </div>
+                      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-canvas">
+                        <motion.div
+                          animate={{ width: `${Math.max(percent, item.value > 0 ? 4 : 0)}%` }}
+                          className="h-full rounded-full"
+                          initial={{ width: 0 }}
+                          style={{ background: barColor }}
+                          transition={{ delay: 0.2 + index * 0.05, duration: 0.6, ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="space-y-2.5">
-              {typeChart.map((item, index) => {
-                const percent = anomalyTypeTotal > 0 ? (item.value / anomalyTypeTotal) * 100 : 0;
-                const tone =
-                  index === 0
-                    ? "from-rose-600 to-orange-500"
-                    : index === 1
-                      ? "from-orange-500 to-amber-400"
-                      : "from-slate-500 to-slate-400";
+          </motion.div>
+
+          <motion.div className="dashboard-card min-h-[360px] p-4" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Canaux présents parmi les anomalies détectées"
+              icon={Cable}
+              title="Canaux exposés"
+              tone="alert"
+            />
+            <div className="grid flex-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {channelChart.map((item) => {
+                const percent = anomalyChannelMax > 0 ? (item.value / anomalyChannelMax) * 100 : 0;
+                const level: 0 | 1 | 2 = percent >= 80 ? 2 : percent >= 40 ? 1 : 0;
+                const severityLabel =
+                  level === 2 ? "Exposition forte" : level === 1 ? "Exposition moyenne" : "Exposition faible";
 
                 return (
-                  <motion.div
-                    animate={{ opacity: 1, x: 0 }}
-                    className="rounded-2xl border border-slate-100 bg-white/85 p-3 shadow-sm"
-                    initial={{ opacity: 0, x: -12 }}
+                  <article
+                    className="rounded-xl border border-hairline bg-surface p-4"
                     key={item.name}
-                    transition={{ delay: 0.36 + index * 0.07, duration: 0.32 }}
-                    whileHover={{ x: 3, backgroundColor: "rgba(255,255,255,1)" }}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-extrabold text-ink">{item.name}</p>
-                        <p className="text-xs font-semibold text-slate-500">{percent.toFixed(1)} % des alertes</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-faint">
+                          Canal
+                        </p>
+                        <h3 className="mt-1.5 text-base font-semibold text-ink">{item.name}</h3>
                       </div>
-                      <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700 ring-1 ring-rose-100">
+                      <span className="tnum rounded-lg bg-alert-weak px-2.5 py-1.5 text-base font-semibold text-alert">
                         {formatNumber(item.value)}
                       </span>
                     </div>
-                    <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
-                      <motion.div
-                        animate={{ width: `${Math.max(percent, item.value > 0 ? 6 : 0)}%` }}
-                        className={`h-full rounded-full bg-gradient-to-r ${tone}`}
-                        initial={{ width: 0 }}
-                        transition={{ delay: 0.5 + index * 0.08, duration: 0.7, ease: "easeOut" }}
-                      />
+                    <div className="mt-4">
+                      <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink-muted">
+                        <span>Niveau relatif</span>
+                        <span className="tnum">{Math.round(percent)} %</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-canvas">
+                        <motion.div
+                          animate={{ width: `${Math.max(percent, item.value > 0 ? 6 : 0)}%` }}
+                          className="h-full rounded-full bg-alert"
+                          initial={{ width: 0 }}
+                          transition={{ duration: 0.6, ease: "easeOut" }}
+                        />
+                      </div>
                     </div>
-                  </motion.div>
+                    <span className="mt-3 inline-block">
+                      <SeverityBadge label={severityLabel} level={level} />
+                    </span>
+                  </article>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         </motion.div>
-
-        <motion.div
-          className="dashboard-card min-h-[360px] border-orange-100 bg-gradient-to-br from-white via-white to-orange-50/35"
-          variants={anomalyCardVariants}
-          whileHover={anomalyCardHover}
-        >
-          <ChartHeader
-            description="Canaux presents parmi les anomalies detectees"
-            icon={Cable}
-            title="Canaux exposes"
-            tone="orange"
-          />
-          <div className="grid flex-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            {channelChart.map((item, index) => {
-              const percent = anomalyChannelMax > 0 ? (item.value / anomalyChannelMax) * 100 : 0;
-              const severity =
-                percent >= 80
-                  ? { label: "Exposition forte", className: "bg-rose-50 text-rose-700 ring-rose-100" }
-                  : percent >= 40
-                    ? { label: "Exposition moyenne", className: "bg-orange-50 text-orange-700 ring-orange-100" }
-                    : { label: "Exposition faible", className: "bg-emerald-50 text-emerald-700 ring-emerald-100" };
-
-              return (
-                <motion.article
-                  animate={{ opacity: 1, y: 0 }}
-                  className="relative overflow-hidden rounded-2xl border border-orange-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  initial={{ opacity: 0, y: 14 }}
-                  key={item.name}
-                  transition={{ delay: 0.38 + index * 0.09, duration: 0.35 }}
-                  whileHover={{ y: -3, boxShadow: "0 16px 28px -22px rgba(234, 88, 12, 0.55)" }}
-                >
-                  <span className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-orange-100/70" />
-                  <div className="relative flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.08em] text-slate-400">
-                        Canal {index + 1}
-                      </p>
-                      <h3 className="mt-2 text-lg font-black text-ink">{item.name}</h3>
-                    </div>
-                    <span className="rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 px-3 py-2 text-lg font-black text-white shadow-[0_14px_30px_-20px_rgba(244,63,94,0.85)]">
-                      {formatNumber(item.value)}
-                    </span>
-                  </div>
-                  <div className="relative mt-5">
-                    <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
-                      <span>Niveau relatif</span>
-                      <span>{Math.round(percent)} %</span>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                      <motion.div
-                        animate={{ width: `${Math.max(percent, item.value > 0 ? 8 : 0)}%` }}
-                        className="h-full rounded-full bg-gradient-to-r from-orange-400 to-rose-500"
-                        initial={{ width: 0 }}
-                        transition={{ delay: 0.55 + index * 0.09, duration: 0.72, ease: "easeOut" }}
-                      />
-                    </div>
-                  </div>
-                  <span className={`relative mt-4 inline-flex rounded-full px-2.5 py-1 text-[11px] font-extrabold ring-1 ${severity.className}`}>
-                    {severity.label}
-                  </span>
-                </motion.article>
-              );
-            })}
-          </div>
-        </motion.div>
-      </motion.div>
       ) : null}
 
       {activeSubPage === "geography" ? (
-      <motion.div
-        animate="visible"
-        className="grid gap-4 lg:grid-cols-2"
-        initial="hidden"
-        variants={anomalyGridVariants}
-      >
         <motion.div
-          className="dashboard-card chart-card min-h-[345px] border-rose-100 bg-gradient-to-br from-white via-white to-rose-50/45"
-          variants={anomalyCardVariants}
-          whileHover={anomalyCardHover}
+          animate="visible"
+          className="grid gap-4 lg:grid-cols-2"
+          initial="hidden"
+          variants={gridVariants}
         >
-          <ChartHeader
-            description="Zones avec le plus de signalements"
-            icon={AlertTriangle}
-            title="Top wilayas par anomalies"
-            tone="red"
-          />
-          <div className="min-h-[240px] flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={anomalyWilayas} layout="vertical" margin={{ top: 4, right: 50, left: 8, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="anomalyWilayasGradient" x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0%" stopColor="#be123c" stopOpacity={0.88} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.95} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" horizontal={false} />
-                <XAxis type="number" {...axisStyle} />
-                <YAxis dataKey="wilaya" type="category" width={132} {...axisStyle} />
-                <Tooltip formatter={(value) => formatNumber(Number(value))} />
-                <Bar
-                  animationBegin={160}
-                  animationDuration={950}
-                  animationEasing="ease-out"
-                  barSize={14}
-                  dataKey="anomalies_count"
-                  fill="url(#anomalyWilayasGradient)"
-                  isAnimationActive
-                  radius={[0, 8, 8, 0]}
-                >
-                  <LabelList
-                    className="fill-rose-700 text-[11px] font-bold"
+          <motion.div className="dashboard-card chart-card min-h-[345px]" variants={cardVariants} whileHover={cardHover}>
+            <ChartHeader
+              description="Zones avec le plus de signalements"
+              icon={AlertTriangle}
+              title="Top wilayas par anomalies"
+              tone="alert"
+            />
+            <div className="min-h-[240px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={anomalyWilayas} layout="vertical" margin={{ top: 4, right: 50, left: 8, bottom: 0 }}>
+                  <CartesianGrid stroke={CHART.grid} horizontal={false} />
+                  <XAxis type="number" {...axisProps} />
+                  <YAxis dataKey="wilaya" type="category" width={132} {...axisProps} />
+                  <Tooltip content={<ChartTooltip />} cursor={tooltipCursor} />
+                  <Bar
+                    animationDuration={700}
+                    barSize={13}
                     dataKey="anomalies_count"
-                    formatter={(value: number) => formatNumber(value)}
-                    position="right"
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+                    fill={CHART.alert}
+                    radius={[0, 3, 3, 0]}
+                  >
+                    <LabelList
+                      className="fill-alert text-[11px] font-medium"
+                      dataKey="anomalies_count"
+                      formatter={(value: number) => formatNumber(value)}
+                      position="right"
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
 
-        <motion.div className="min-h-0" variants={anomalyCardVariants} whileHover={anomalyCardHover}>
-          <DataTable
-            columns={[
-              { key: "wilaya", label: "Wilaya" },
-              {
-                key: "anomalies_count",
-                label: "Anomalies",
-                render: (row) => <AnomalyBadge value={Number(row.anomalies_count)} />,
-              },
-              {
-                key: "transactions",
-                label: "Transactions",
-                render: (row) => formatNumber(Number(row.transactions)),
-              },
-              {
-                key: "failure_rate",
-                label: "Taux d'echec",
-                render: (row) => <FailureBadge value={Number(row.failure_rate)} />,
-              },
-            ]}
-            rows={anomalyWilayas}
-            tone="violet"
-            title="Classement geographique des anomalies"
-          />
+          <motion.div className="min-h-0" variants={cardVariants} whileHover={cardHover}>
+            <DataTable
+              columns={[
+                { key: "wilaya", label: "Wilaya" },
+                {
+                  key: "anomalies_count",
+                  label: "Anomalies",
+                  render: (row) => <AnomalyBadge value={Number(row.anomalies_count)} />,
+                },
+                {
+                  key: "transactions",
+                  label: "Transactions",
+                  render: (row) => <span className="tnum">{formatNumber(Number(row.transactions))}</span>,
+                },
+                {
+                  key: "failure_rate",
+                  label: "Taux d'échec",
+                  render: (row) => <FailureBadge value={Number(row.failure_rate)} />,
+                },
+              ]}
+              rows={anomalyWilayas}
+              title="Classement géographique des anomalies"
+            />
+          </motion.div>
         </motion.div>
-      </motion.div>
       ) : null}
 
-      {activeSubPage === "transactions" ? (
-      <AnomaliesView results={results} />
-      ) : null}
+      {activeSubPage === "transactions" ? <AnomaliesView results={results} /> : null}
     </section>
   );
 }

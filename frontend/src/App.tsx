@@ -149,14 +149,21 @@ export default function App() {
     >
       <main className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-5 py-6 md:px-6">
         {error ? (
-          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-mauri-red">
+          <div className="rounded-lg border border-alert/25 bg-alert-weak px-4 py-3 text-sm font-medium text-alert">
             {error}
           </div>
         ) : null}
 
-        {activeView === "dashboard" ? renderActivePage() : null}
+        <motion.div
+          key={activeView}
+          className="flex flex-col gap-6"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+            {activeView === "dashboard" ? renderActivePage() : null}
 
-        {activeView === "dashboard" ? (
+            {activeView === "dashboard" ? (
         <motion.div
           className="grid w-full gap-4 md:grid-cols-2 xl:grid-cols-4 xl:gap-3"
           aria-label="Indicateurs principaux"
@@ -166,8 +173,8 @@ export default function App() {
             hidden: {},
             visible: {
               transition: {
-                delayChildren: 0.16,
-                staggerChildren: 0.12,
+                delayChildren: 0.08,
+                staggerChildren: 0.06,
               },
             },
           }}
@@ -175,7 +182,7 @@ export default function App() {
           <StatCard
             detail="Volume total du dataset chargé"
             icon={ReceiptText}
-            status="Dataset charge"
+            status="Dataset chargé"
             title="Transactions"
             value={formatNumber(snapshot?.stats.total_transactions ?? 0)}
           />
@@ -183,9 +190,8 @@ export default function App() {
             detail="Somme des montants observés"
             icon={Banknote}
             nowrapValue
-            status="Analyse terminee"
+            status="Analyse terminée"
             title="Montant total"
-            tone="gold"
             value={formatAmount(snapshot?.stats.total_amount ?? 0)}
           />
           <StatCard
@@ -195,27 +201,27 @@ export default function App() {
                 : "Chargez un fichier pour lancer l'analyse"
             }
             icon={AlertTriangle}
-            status="Consensus actif"
-            title="Consensus des trois modèles"
-            tone="red"
+            status="Consensus des 3 modèles"
+            title="Fraudes détectées"
+            tone="alert"
             value={
               ensembleResult
-                ? `${formatNumber(ensembleResult.anomalies_detected)} fraudes détectées`
+                ? `${formatNumber(ensembleResult.anomalies_detected)} transactions`
                 : "—"
             }
           />
           <StatCard
             detail="Part des transactions échouées"
             icon={CheckCircle2}
-            status="Echecs detectes"
+            status="Échecs"
             title="Taux d'échec"
-            tone="blue"
             value={formatPercent(snapshot?.stats.failure_rate ?? 0)}
           />
         </motion.div>
-        ) : null}
+            ) : null}
 
-        {activeView !== "dashboard" ? renderActivePage() : null}
+            {activeView !== "dashboard" ? renderActivePage() : null}
+        </motion.div>
       </main>
     </AppLayout>
   );

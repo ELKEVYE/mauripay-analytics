@@ -60,3 +60,7 @@ frontend/*.log
 
 # Documentation Sphinx generee
 docs/_build/
+
+# Frontend local tooling
+frontend/bun.lockb
+frontend/*.tsbuildinfo

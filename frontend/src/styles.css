@@ -2,87 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   MauriPay Analytics — base layer
+   Tokens mirror tailwind.config.ts. Five hues, one elevation, hairline rules.
+--------------------------------------------------------------------------- */
+:root {
+  --canvas: #f5f7f6;
+  --surface: #ffffff;
+  --hairline: #e4e7e5;
+  --ink: #16211d;
+  --ink-muted: #5c6b65;
+  --anchor: #0c5c4c;
+  --anchor-weak: #eaf1ee;
+  --alert: #b42318;
+}
+
 html {
-  color: #1f2933;
-  background: #ffffff;
+  color: var(--ink);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  background: #ffffff;
+  background: var(--canvas);
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Figures line up in tables and KPIs. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 .app-shell,
 .app-content {
-  background: #ffffff;
+  background: var(--canvas);
 }
 
-.active-nav-cut::before,
-.active-nav-cut::after {
-  position: absolute;
-  right: 0;
-  width: 50px;
-  height: 50px;
-  content: "";
-  pointer-events: none;
-  background: transparent;
-  border-radius: 50%;
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
-.active-nav-cut {
-  box-shadow: 20px 0 0 #ffffff;
+/* Keyboard focus — always visible, never removed without a replacement. */
+:focus-visible {
+  outline: 2px solid var(--anchor);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
-.active-nav-cut::before {
-  top: -50px;
-  box-shadow: 35px 35px 0 10px #ffffff;
-}
-
-.active-nav-cut::after {
-  bottom: -50px;
-  box-shadow: 35px -35px 0 10px #ffffff;
-}
-
+/* ---------------------------------------------------------------------------
+   Surfaces
+--------------------------------------------------------------------------- */
 .dashboard-card {
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 8px;
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 58%, rgba(238, 242, 255, 0.55) 100%);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface);
   box-shadow:
-    0 22px 50px -30px rgba(15, 23, 42, 0.48),
-    0 10px 24px -20px rgba(79, 70, 229, 0.32);
+    0 1px 2px rgba(20, 33, 29, 0.04),
+    0 1px 3px rgba(20, 33, 29, 0.06);
   transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    border-color 180ms ease;
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
 }
 
 .dashboard-card:hover {
-  border-color: rgba(99, 102, 241, 0.32);
+  border-color: rgba(12, 92, 76, 0.28);
   box-shadow:
-    0 28px 62px -32px rgba(15, 23, 42, 0.55),
-    0 16px 34px -24px rgba(79, 70, 229, 0.4);
-  transform: translateY(-2px);
+    0 2px 6px rgba(20, 33, 29, 0.06),
+    0 8px 20px -6px rgba(20, 33, 29, 0.1);
 }
 
 .chart-card {
   display: flex;
   min-height: 16rem;
   flex-direction: column;
-  border-radius: 8px;
-  padding: 0.875rem;
+  padding: 1rem;
 }
 
 .chart-title {
   margin-bottom: 0.625rem;
-  color: #0f172a;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
+/* ---------------------------------------------------------------------------
+   Scrollbars — neutral, thin
+--------------------------------------------------------------------------- */
 .soft-scrollbar {
-  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+  scrollbar-color: rgba(92, 107, 101, 0.4) transparent;
   scrollbar-width: thin;
 }
 
@@ -92,7 +103,7 @@ body {
 }
 
 .soft-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(92, 107, 101, 0.32);
   border-radius: 999px;
 }
 
@@ -109,9 +120,14 @@ body {
   display: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Leaflet — muted skin that matches the token system
+--------------------------------------------------------------------------- */
 .leaflet-container {
   min-height: 360px;
   width: 100%;
+  background: #eef1f0;
+  font-family: inherit;
 }
 
 .geo-map-compact .leaflet-container {
@@ -119,107 +135,53 @@ body {
   min-height: 0;
 }
 
-.app-dark {
-  color: #e2e8f0;
-  background: #0f172a;
+.leaflet-popup-content-wrapper,
+.leaflet-tooltip {
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px -16px rgba(20, 33, 29, 0.22);
+  color: var(--ink);
 }
 
-.app-dark .app-content {
-  background: #0f172a;
+.leaflet-tooltip {
+  padding: 6px 8px;
+  font-size: 11px;
 }
 
-.app-dark .dashboard-card {
-  border-color: #334155;
-  background: linear-gradient(135deg, #172033 0%, #172033 58%, #20204a 100%);
+.leaflet-tooltip::before {
+  display: none;
 }
 
-.app-dark .chart-title {
-  color: #f1f5f9;
+.leaflet-bar a {
+  color: var(--ink);
+  border-color: var(--hairline);
 }
 
-.app-dark .active-nav-cut {
-  background-color: #0f172a !important;
-  color: #e0e7ff !important;
-  box-shadow: 20px 0 0 #0f172a;
+/* ---------------------------------------------------------------------------
+   Recharts — axis + grid defaults aligned to tokens
+--------------------------------------------------------------------------- */
+.recharts-cartesian-grid line {
+  stroke: #eaedec;
 }
 
-.app-dark .active-nav-cut::before {
-  background: transparent;
-  box-shadow: 35px 35px 0 10px #0f172a;
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: transparent;
 }
 
-.app-dark .active-nav-cut::after {
-  background: transparent;
-  box-shadow: 35px -35px 0 10px #0f172a;
+.recharts-text {
+  fill: var(--ink-muted);
 }
 
-.app-dark .app-header,
-.app-dark .app-sidebar,
-.app-dark .app-popover,
-.app-dark .bg-white {
-  border-color: #334155 !important;
-  background-color: #172033 !important;
+.recharts-default-tooltip {
+  border-radius: 10px !important;
+  border: 1px solid var(--hairline) !important;
+  box-shadow: 0 16px 40px -16px rgba(20, 33, 29, 0.22) !important;
 }
 
-.app-dark .app-sidebar {
-  border-color: #312e81 !important;
-  background-color: #1e1b4b !important;
-}
-
-.app-dark [class*="from-white"] {
-  background-image: linear-gradient(to bottom right, #172033, #1e293b) !important;
-}
-
-.app-dark .bg-slate-100,
-.app-dark .bg-slate-50 {
-  background-color: #111827 !important;
-}
-
-.app-dark .border-slate-100,
-.app-dark .border-slate-200,
-.app-dark .border-slate-300 {
-  border-color: #334155 !important;
-}
-
-.app-dark .text-ink,
-.app-dark .text-slate-700,
-.app-dark .text-slate-800 {
-  color: #f1f5f9 !important;
-}
-
-.app-dark .text-slate-400,
-.app-dark .text-slate-500,
-.app-dark .text-slate-600 {
-  color: #a8b3c5 !important;
-}
-
-.app-dark input,
-.app-dark select {
-  border-color: #475569 !important;
-  color: #e2e8f0 !important;
-  background-color: #111827 !important;
-}
-
-.app-dark table thead {
-  background-color: #1e293b !important;
-}
-
-.app-dark table tbody {
-  background-color: #172033;
-}
-
-.app-dark table tbody tr:hover {
-  background-color: #1e293b !important;
-}
-
-.app-dark .recharts-cartesian-grid line {
-  stroke: #475569;
-}
-
-.app-dark .recharts-text {
-  fill: #cbd5e1;
-}
-
+/* ---------------------------------------------------------------------------
+   Motion — one choreographed load, then stillness
+--------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

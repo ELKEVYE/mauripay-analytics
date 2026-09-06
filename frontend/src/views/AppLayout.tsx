@@ -8,17 +8,14 @@ import {
   LayoutDashboard,
   MapPinned,
   Menu,
-  Moon,
   RefreshCw,
-  Sun,
   Table2,
   Wifi,
   WifiOff,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { Variants } from "framer-motion";
-import mauriPayLogo from "../assets/logo mauripay-analytics.png";
+import mauriPayLogo from "../assets/mauripay-logo.svg";
 
 export type AppView =
   | "dashboard"
@@ -45,7 +42,6 @@ const navigation = [
   {
     id: "dashboard" as const,
     label: "Dashboard",
-    description: "Vue d'ensemble",
     icon: LayoutDashboard,
   },
 ];
@@ -56,24 +52,9 @@ const analysisGroups = [
     icon: BarChart3,
     views: ["transactionTemporal", "transactionOperations", "transactionGeography"] as AppView[],
     items: [
-      {
-        id: "transactionTemporal" as const,
-        label: "Vue temporelle",
-        description: "Transactions et montants",
-        icon: Clock3,
-      },
-      {
-        id: "transactionOperations" as const,
-        label: "Operations",
-        description: "Heures, operateurs, types, canaux",
-        icon: BarChart3,
-      },
-      {
-        id: "transactionGeography" as const,
-        label: "Geographie",
-        description: "Wilayas, carte et volumes",
-        icon: MapPinned,
-      },
+      { id: "transactionTemporal" as const, label: "Vue temporelle", icon: Clock3 },
+      { id: "transactionOperations" as const, label: "Opérations", icon: BarChart3 },
+      { id: "transactionGeography" as const, label: "Géographie", icon: MapPinned },
     ],
   },
   {
@@ -81,58 +62,71 @@ const analysisGroups = [
     icon: AlertTriangle,
     views: ["anomalyTemporal", "anomalyGeography", "anomalyTransactions"] as AppView[],
     items: [
-      {
-        id: "anomalyTemporal" as const,
-        label: "Vue temporelle",
-        description: "Heures et semaines",
-        icon: Clock3,
-      },
-      {
-        id: "anomalyGeography" as const,
-        label: "Geographie",
-        description: "Wilayas les plus risquees",
-        icon: MapPinned,
-      },
-      {
-        id: "anomalyTransactions" as const,
-        label: "Transactions suspectes",
-        description: "Liste detaillee des alertes",
-        icon: Table2,
-      },
+      { id: "anomalyTemporal" as const, label: "Vue temporelle", icon: Clock3 },
+      { id: "anomalyGeography" as const, label: "Géographie", icon: MapPinned },
+      { id: "anomalyTransactions" as const, label: "Transactions suspectes", icon: Table2 },
     ],
   },
 ];
 
-const sidebarVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      delayChildren: 0.12,
-      duration: 0.55,
-      ease: "easeOut",
-      staggerChildren: 0.055,
-    },
-  },
+const VIEW_TITLES: Record<AppView, string> = {
+  dashboard: "Vue d'ensemble",
+  transactionTemporal: "Transactions · Vue temporelle",
+  transactionOperations: "Transactions · Opérations",
+  transactionGeography: "Transactions · Géographie",
+  anomalyTemporal: "Anomalies · Vue temporelle",
+  anomalyGeography: "Anomalies · Géographie",
+  anomalyTransactions: "Anomalies · Transactions suspectes",
 };
 
-const sidebarItemVariants: Variants = {
-  hidden: { opacity: 0, x: -12 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.32, ease: "easeOut" },
-  },
-};
-
-const sidebarActiveVariants: Variants = {
-  inactive: { scale: 1 },
-  active: {
-    scale: [0.98, 1.015, 1],
-    transition: { duration: 0.34, ease: "easeOut" },
-  },
-};
-
+function NavRow({
+  icon: Icon,
+  label,
+  active,
+  collapsed,
+  sub,
+  onClick,
+}: {
+  icon: typeof LayoutDashboard;
+  label: string;
+  active: boolean;
+  collapsed?: boolean;
+  sub?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-current={active ? "page" : undefined}
+      className={`relative flex w-full items-center gap-3 rounded-lg py-2.5 text-left transition-colors ${
+        collapsed ? "justify-center px-2" : sub ? "pl-4 pr-3" : "px-3"
+      } ${
+        active
+          ? "bg-anchor-weak text-anchor"
+          : "text-ink-muted hover:bg-canvas hover:text-ink"
+      }`}
+      onClick={onClick}
+      title={collapsed ? label : undefined}
+      type="button"
+    >
+      {active ? (
+        <motion.span
+          aria-hidden="true"
+          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-anchor"
+          layoutId="nav-active"
+          transition={{ type: "spring", stiffness: 400, damping: 34 }}
+        />
+      ) : null}
+      <Icon className={`${sub ? "h-4 w-4" : "h-[18px] w-[18px]"} shrink-0`} aria-hidden="true" />
+      <span
+        className={`min-w-0 truncate ${sub ? "text-[13px]" : "text-sm"} ${
+          active ? "font-semibold" : "font-medium"
+        } ${collapsed ? "lg:hidden" : ""}`}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
 
 export function AppLayout({
   activeView,
@@ -149,7 +143,6 @@ export function AppLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [apiPanelOpen, setApiPanelOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -157,96 +150,76 @@ export function AppLayout({
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const storedTheme = window.localStorage.getItem("mauripay-theme");
-    if (storedTheme === "dark") setDarkMode(true);
-  }, []);
-
-  function toggleTheme() {
-    setDarkMode((current) => {
-      const next = !current;
-      window.localStorage.setItem("mauripay-theme", next ? "dark" : "light");
-      return next;
-    });
-  }
-
   function navigate(view: AppView) {
     onNavigate(view);
     setMobileMenuOpen(false);
     setNotificationsOpen(false);
+    setApiPanelOpen(false);
   }
 
   return (
-    <div className={`app-shell min-h-screen overflow-x-hidden ${darkMode ? "app-dark" : ""}`}>
+    <div className="app-shell min-h-screen overflow-x-hidden">
       <motion.header
         data-testid="app-header"
-        className={`app-header fixed left-0 right-0 top-0 z-40 flex h-[70px] min-w-0 items-center border-b border-slate-200/75 bg-white/95 px-4 shadow-[0_12px_34px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl transition-[left] duration-300 ease-in-out sm:px-5 ${
+        className={`app-header fixed left-0 right-0 top-0 z-40 flex h-[64px] min-w-0 items-center border-b border-hairline border-t-2 border-t-anchor bg-surface px-4 transition-[left] duration-300 ease-in-out sm:px-5 ${
           sidebarCollapsed ? "lg:left-20" : "lg:left-64"
         }`}
-        initial={{ opacity: 0, y: -14 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.42, ease: "easeOut" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <motion.button
+        <button
           aria-label="Ouvrir le menu"
-          className="mr-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-mauri-green hover:shadow-md lg:hidden"
-          whileHover={{ scale: 1.04, y: -2 }}
-          whileTap={{ scale: 0.96 }}
+          className="mr-3 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-hairline text-ink-muted transition-colors hover:bg-canvas hover:text-ink lg:hidden"
           onClick={() => setMobileMenuOpen(true)}
           type="button"
         >
           <Menu className="h-5 w-5" />
-        </motion.button>
+        </button>
 
-        <motion.button
+        <button
           aria-label={sidebarCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
-          className="mr-3 hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-mauri-green hover:shadow-md lg:inline-flex"
-          whileHover={{ scale: 1.04, y: -2 }}
-          whileTap={{ scale: 0.96 }}
+          className="mr-3 hidden h-10 w-10 items-center justify-center rounded-lg border border-hairline text-ink-muted transition-colors hover:bg-canvas hover:text-ink lg:inline-flex"
           onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
-          title={sidebarCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
           type="button"
         >
           <Menu className="h-5 w-5" />
-        </motion.button>
+        </button>
 
-        <motion.div className="flex min-w-0 items-center gap-3 lg:hidden" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08, duration: 0.32, ease: "easeOut" }}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-white shadow-[0_14px_28px_-18px_rgba(5,150,105,0.8)] ring-1 ring-emerald-100">
-            <img src={mauriPayLogo} alt="" className="h-8 w-8" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-ink">MauriPay Analytics</p>
-            <p className="hidden text-xs text-slate-500 sm:block">Supervision Mobile Money</p>
-          </div>
-        </motion.div>
+        <div className="flex min-w-0 items-center gap-2.5 lg:hidden">
+          <img src={mauriPayLogo} alt="" className="h-8 w-8 shrink-0" aria-hidden="true" />
+          <p className="truncate text-sm font-semibold text-ink">MauriPay Analytics</p>
+        </div>
 
-        <motion.div className="ml-auto flex min-w-0 items-center gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/55 px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] sm:gap-2" initial={{ opacity: 0, x: 18, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ delay: 0.12, duration: 0.42, ease: "easeOut" }}>
+        <p className="hidden min-w-0 truncate text-sm font-semibold text-ink lg:block">
+          {VIEW_TITLES[activeView]}
+        </p>
+
+        <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2">
           {datasetName ? (
             <div
-              className="hidden max-w-48 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600 shadow-sm 2xl:flex"
+              className="hidden max-w-52 items-center gap-2 rounded-lg border border-hairline px-3 py-2 text-ink-muted 2xl:flex"
               title={datasetName}
             >
-              <Database className="h-4 w-4 shrink-0 text-mauri-green" aria-hidden="true" />
-              <span className="truncate text-xs font-medium">{datasetName}</span>
+              <Database className="h-4 w-4 shrink-0 text-anchor" aria-hidden="true" />
+              <span className="tnum truncate text-xs font-medium">{datasetName}</span>
             </div>
           ) : null}
 
-          <div className="hidden min-w-[76px] text-right md:block">
-            <p className="text-sm font-extrabold leading-4 text-slate-700">
+          <div className="hidden min-w-[64px] text-right md:block">
+            <p className="tnum text-sm font-semibold leading-4 text-ink">
               {now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
             </p>
-            <p className="mt-0.5 hidden text-[10px] font-semibold text-slate-400 lg:block">
+            <p className="tnum mt-0.5 hidden text-[10px] font-medium text-ink-faint lg:block">
               {now.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
             </p>
           </div>
 
           <div className="relative">
-            <motion.button
+            <button
               aria-expanded={notificationsOpen}
               aria-label={`${anomalyCount} anomalies détectées`}
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-slate-500 transition hover:-translate-y-0.5 hover:border-rose-100 hover:bg-white hover:text-rose-600 hover:shadow-md"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.94 }}
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-ink-muted transition-colors hover:border-hairline hover:bg-canvas hover:text-ink"
               onClick={() => {
                 setNotificationsOpen((open) => !open);
                 setApiPanelOpen(false);
@@ -254,68 +227,72 @@ export function AppLayout({
               title="Notifications"
               type="button"
             >
-              <motion.span animate={anomalyCount > 0 ? { rotate: [0, -8, 8, 0] } : { rotate: 0 }} transition={{ duration: 1.8, repeat: anomalyCount > 0 ? Infinity : 0, repeatDelay: 5 }}><Bell className="h-4 w-4" /></motion.span>
+              <Bell className="h-[18px] w-[18px]" />
               {anomalyCount > 0 ? (
-                <motion.span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-600 px-1.5 text-center text-[10px] font-black leading-5 text-white ring-2 ring-white" initial={{ opacity: 0, scale: 0.65 }} animate={{ opacity: 1, scale: [1, 1.08, 1] }} transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 3 }}>
+                <span className="tnum absolute -right-1 -top-1 min-w-[18px] rounded-full bg-alert px-1 text-center text-[10px] font-semibold leading-[18px] text-white ring-2 ring-surface">
                   {anomalyCount > 99 ? "99+" : anomalyCount}
-                </motion.span>
+                </span>
               ) : null}
-            </motion.button>
+            </button>
             {notificationsOpen ? (
-              <div className="app-popover absolute right-0 top-11 w-72 rounded border border-slate-200 bg-white p-3 shadow-[0_24px_58px_-28px_rgba(15,23,42,0.55)]">
+              <div className="app-popover absolute right-0 top-12 w-72 rounded-xl border border-hairline bg-surface p-3 shadow-pop">
                 <p className="text-sm font-semibold text-ink">Notifications</p>
-                <div className="mt-3 rounded bg-rose-50 p-3">
-                  <p className="text-sm font-semibold text-rose-700">
+                <div className="mt-3 rounded-lg border border-alert/20 bg-alert-weak p-3">
+                  <p className="tnum text-sm font-semibold text-alert">
                     {anomalyCount.toLocaleString("fr-FR")} anomalie(s)
                   </p>
-                  <p className="mt-1 text-xs text-rose-600">
-                    Détectées par le consensus des modèles.
+                  <p className="mt-1 text-xs text-alert/80">
+                    Détectées par le consensus des trois modèles.
                   </p>
                 </div>
                 <button
-                  className="mt-3 w-full rounded bg-mauri-green px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                  className="mt-3 w-full rounded-lg bg-anchor px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-anchor-strong"
                   onClick={() => navigate("anomalyTransactions")}
                   type="button"
                 >
-                  Voir les anomalies
+                  Voir les transactions suspectes
                 </button>
               </div>
             ) : null}
           </div>
 
           <div className="relative">
-            <motion.button
+            <button
               aria-expanded={apiPanelOpen}
-              className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-extrabold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+              className={`inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors ${
                 apiConnected
-                  ? "border-emerald-100 bg-emerald-50 text-mauri-green"
-                  : "border-red-100 bg-red-50 text-red-600"
+                  ? "border-hairline text-ink-muted hover:bg-canvas"
+                  : "border-alert/25 bg-alert-weak text-alert"
               }`}
-              whileHover={{ scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 setApiPanelOpen((open) => !open);
                 setNotificationsOpen(false);
               }}
               type="button"
             >
-              <motion.span className={`h-2 w-2 rounded-full ${apiConnected ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.14)]" : "bg-red-500"}`} animate={apiConnected ? { scale: [1, 1.35, 1] } : { scale: 1 }} transition={{ duration: 1.6, repeat: apiConnected ? Infinity : 0, repeatDelay: 1.2 }} />
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 rounded-full ${apiConnected ? "bg-anchor" : "bg-alert"}`}
+              />
               {apiConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
               <span className="hidden sm:inline">{apiConnected ? "API connectée" : "API indisponible"}</span>
-            </motion.button>
+            </button>
             {apiPanelOpen ? (
-              <div className="app-popover absolute right-0 top-11 w-72 rounded border border-slate-200 bg-white p-3 shadow-[0_24px_58px_-28px_rgba(15,23,42,0.55)]">
+              <div className="app-popover absolute right-0 top-12 w-72 rounded-xl border border-hairline bg-surface p-3 shadow-pop">
                 <div className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${apiConnected ? "bg-emerald-500" : "bg-red-500"}`} />
+                  <span
+                    aria-hidden="true"
+                    className={`h-2.5 w-2.5 rounded-full ${apiConnected ? "bg-anchor" : "bg-alert"}`}
+                  />
                   <p className="text-sm font-semibold text-ink">
                     {apiConnected ? "Service disponible" : "Connexion interrompue"}
                   </p>
                 </div>
-                <p className="mt-2 break-all text-xs text-slate-500">
+                <p className="mt-2 break-all font-mono text-xs text-ink-muted">
                   {import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"}
                 </p>
                 <button
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-hairline px-3 py-2 text-sm font-semibold text-ink-muted transition-colors hover:bg-canvas"
                   disabled={refreshing}
                   onClick={onReconnect}
                   type="button"
@@ -326,209 +303,121 @@ export function AppLayout({
               </div>
             ) : null}
           </div>
-
-          <motion.button
-            aria-label={darkMode ? "Activer le mode clair" : "Activer le mode sombre"}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-slate-500 transition hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white hover:text-ink hover:shadow-md"
-            whileHover={{ rotate: darkMode ? -10 : 10, scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={toggleTheme}
-            title={darkMode ? "Mode clair" : "Mode sombre"}
-            type="button"
-          >
-            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </motion.button>
-
-        </motion.div>
+        </div>
       </motion.header>
 
       <AnimatePresence>
         {mobileMenuOpen ? (
           <motion.button
             aria-label="Fermer le menu"
-            className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden"
+            className="fixed inset-0 z-40 bg-ink/30 lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.16 }}
             onClick={() => setMobileMenuOpen(false)}
             type="button"
           />
         ) : null}
       </AnimatePresence>
 
-      <motion.aside
+      <aside
         data-testid="app-sidebar"
-        className={`app-sidebar fixed bottom-0 left-0 top-0 z-50 flex w-64 flex-col overflow-hidden bg-gradient-to-b from-[#312e81] via-[#3730a3] to-[#1e1b4b] text-white shadow-[10px_0_34px_-28px_rgba(15,23,42,0.72)] transition-[width,transform] duration-300 ease-in-out lg:z-50 lg:translate-x-0 ${
+        className={`app-sidebar fixed bottom-0 left-0 top-0 z-50 flex w-64 flex-col border-r border-hairline bg-surface transition-[width,transform] duration-300 ease-in-out lg:translate-x-0 ${
           sidebarCollapsed ? "lg:w-20" : "lg:w-64"
-        } ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-        initial="hidden"
-        animate="visible"
-        variants={sidebarVariants}
+        } ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <motion.div
-          className="flex h-[76px] shrink-0 items-center gap-3 border-b border-white/10 px-4"
-          variants={sidebarItemVariants}
-        >
-          <motion.div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-[0_12px_24px_-18px_rgba(0,0,0,0.75)] ring-1 ring-white/50"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{
-              boxShadow: "0 18px 30px -20px rgba(99, 102, 241, 0.85)",
-              y: -2,
-            }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <img src={mauriPayLogo} alt="" className="h-9 w-9" aria-hidden="true" />
-          </motion.div>
+        <div className="flex h-[64px] shrink-0 items-center gap-3 border-b border-hairline px-4">
+          <img src={mauriPayLogo} alt="" className="h-9 w-9 shrink-0" aria-hidden="true" />
           <div className={`min-w-0 flex-1 ${sidebarCollapsed ? "lg:hidden" : ""}`}>
-            <p className="truncate text-[16px] font-black leading-5 text-white">MauriPay Analytics</p>
-            <p className="mt-0.5 truncate text-xs font-semibold text-emerald-200/90">Supervision Mobile Money</p>
+            <p className="truncate text-[15px] font-semibold leading-5 text-ink">
+              MauriPay <span className="text-anchor">Analytics</span>
+            </p>
+            <p className="truncate text-[11px] font-medium text-ink-muted">Supervision Mobile Money</p>
           </div>
           <button
             aria-label="Fermer le menu"
-            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded text-emerald-100 hover:bg-white/10 lg:hidden"
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas lg:hidden"
             onClick={() => setMobileMenuOpen(false)}
             type="button"
           >
             <X className="h-5 w-5" />
           </button>
-        </motion.div>
+        </div>
 
-        <motion.nav
-          className="no-scrollbar flex-1 space-y-2 overflow-y-auto px-3 py-5"
+        <nav
+          className="no-scrollbar flex-1 space-y-1 overflow-y-auto px-3 py-4"
           aria-label="Navigation principale"
-          variants={sidebarVariants}
         >
-          <motion.p
-            className={`mb-3 px-3 text-[10px] font-black uppercase tracking-[0.08em] text-emerald-300/80 ${sidebarCollapsed ? "lg:hidden" : ""}`}
-            variants={sidebarItemVariants}
+          <p
+            className={`mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint ${
+              sidebarCollapsed ? "lg:hidden" : ""
+            }`}
           >
             Principal
-          </motion.p>
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const active = activeView === item.id;
+          </p>
+          {navigation.map((item) => (
+            <NavRow
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              active={activeView === item.id}
+              collapsed={sidebarCollapsed}
+              onClick={() => navigate(item.id)}
+            />
+          ))}
 
-            return (
-              <motion.div key={item.id} variants={sidebarItemVariants}>
-                <motion.button
-                  aria-current={active ? "page" : undefined}
-                  className={`relative flex h-12 items-center gap-3 px-3 text-left transition-all duration-200 ${
-                    sidebarCollapsed ? "lg:justify-center" : ""
-                  } ${
-                    active
-                      ? `${sidebarCollapsed ? "" : "active-nav-cut"} z-10 rounded-l-[999px] rounded-r-[28px] bg-white text-emerald-900 shadow-[0_14px_30px_-24px_rgba(15,23,42,0.6)] ${
-                          sidebarCollapsed ? "w-full" : "w-[calc(100%+0.75rem)]"
-                        }`
-                      : "w-full rounded-xl text-emerald-50 hover:translate-x-1 hover:bg-white/10 hover:text-white"
-                  }`}
-                  animate={active ? "active" : "inactive"}
-                  onClick={() => navigate(item.id)}
-                  title={sidebarCollapsed ? item.label : undefined}
-                  type="button"
-                  variants={sidebarActiveVariants}
-                  whileHover={active ? { y: -1 } : { x: 4 }}
-                >
-                  {active ? (
-                    <motion.span
-                      className="absolute right-3 h-2 w-2 rounded-full bg-mauri-green"
-                      layoutId="sidebar-active-dot"
-                      transition={{ duration: 0.25, ease: "easeOut" }}
-                    />
-                  ) : null}
-                  <span>
-                    <Icon className={`h-5 w-5 shrink-0 ${active ? "text-mauri-green" : "text-emerald-100"}`} aria-hidden="true" />
-                  </span>
-                  <span className={`min-w-0 ${sidebarCollapsed ? "lg:hidden" : ""}`}>
-                    <span className="block text-sm font-extrabold leading-none">{item.label}</span>
-                  </span>
-                </motion.button>
-              </motion.div>
-            );
-          })}
-
-          <motion.p
-            className={`mb-3 mt-8 px-3 text-[10px] font-black uppercase tracking-[0.08em] text-emerald-300/80 ${sidebarCollapsed ? "lg:hidden" : ""}`}
-            variants={sidebarItemVariants}
-          >
-            Analyses
-          </motion.p>
           {analysisGroups.map((group) => {
             const GroupIcon = group.icon;
             const groupActive = group.views.includes(activeView);
 
             return (
-              <motion.div className="space-y-1.5" key={group.label} variants={sidebarItemVariants}>
-                <motion.div
-                  className={`flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-extrabold ${
-                    groupActive ? "bg-white/10 text-white" : "text-emerald-100"
+              <div className="pt-4" key={group.label}>
+                <div
+                  className={`mb-1 flex items-center gap-2.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+                    groupActive ? "text-anchor" : "text-ink-faint"
                   } ${sidebarCollapsed ? "lg:justify-center" : ""}`}
                   title={sidebarCollapsed ? group.label : undefined}
-                  whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.12)", x: 3 }}
-                  transition={{ duration: 0.2 }}
                 >
-                  <span>
-                    <GroupIcon className="h-5 w-5 shrink-0 text-emerald-100" aria-hidden="true" />
-                  </span>
-                  <span className={`${sidebarCollapsed ? "lg:hidden" : ""}`}>{group.label}</span>
-                </motion.div>
-                <motion.div
-                  className={`space-y-1 pl-4 ${sidebarCollapsed ? "lg:hidden" : ""}`}
-                  variants={sidebarVariants}
-                >
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const active = activeView === item.id;
-
-                    return (
-                      <motion.button
-                        aria-current={active ? "page" : undefined}
-                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all duration-200 ${
-                          active
-                            ? "bg-white text-emerald-900 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.65)]"
-                            : "text-emerald-100/85 hover:translate-x-1 hover:bg-white/10 hover:text-white"
-                        }`}
-                        animate={active ? "active" : "inactive"}
-                        key={item.id}
-                        onClick={() => navigate(item.id)}
-                        type="button"
-                        variants={sidebarActiveVariants}
-                        whileHover={active ? { y: -1 } : { x: 4 }}
-                      >
-                        {active ? (
-                          <motion.span
-                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-mauri-green"
-                            layoutId="sidebar-active-subdot"
-                            transition={{ duration: 0.22, ease: "easeOut" }}
-                          />
-                        ) : null}
-                        <span>
-                          <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-mauri-green" : "text-emerald-100/80"}`} aria-hidden="true" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-xs font-extrabold leading-4">{item.label}</span>
-                          <span className={`block truncate text-[10px] font-semibold leading-4 ${active ? "text-emerald-700" : "text-emerald-200/70"}`}>
-                            {item.description}
-                          </span>
-                        </span>
-                      </motion.button>
-                    );
-                  })}
-                </motion.div>
-              </motion.div>
+                  <GroupIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className={sidebarCollapsed ? "lg:hidden" : ""}>{group.label}</span>
+                </div>
+                <div className={`space-y-1 ${sidebarCollapsed ? "" : "border-l border-hairline pl-2"}`}>
+                  {group.items.map((item) => (
+                    <NavRow
+                      key={item.id}
+                      icon={item.icon}
+                      label={item.label}
+                      active={activeView === item.id}
+                      collapsed={sidebarCollapsed}
+                      sub={!sidebarCollapsed}
+                      onClick={() => navigate(item.id)}
+                    />
+                  ))}
+                </div>
+              </div>
             );
           })}
-        </motion.nav>
+        </nav>
 
-      </motion.aside>
+        <div
+          className={`shrink-0 border-t border-hairline px-4 py-3 ${sidebarCollapsed ? "lg:hidden" : ""}`}
+        >
+          <button
+            className="inline-flex items-center gap-2 text-xs font-medium text-ink-muted transition-colors hover:text-ink disabled:opacity-40"
+            disabled={refreshing || !datasetName}
+            onClick={onRefresh}
+            type="button"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Rafraîchir les données
+          </button>
+        </div>
+      </aside>
 
       <div
         data-testid="app-content"
-        className={`app-content min-h-screen min-w-0 pt-[70px] transition-[padding] duration-300 ease-in-out ${
+        className={`app-content min-h-screen min-w-0 pt-[64px] transition-[padding] duration-300 ease-in-out ${
           sidebarCollapsed ? "lg:pl-20" : "lg:pl-64"
         }`}
       >
@@ -537,8 +426,3 @@ export function AppLayout({
     </div>
   );
 }
-
-
-
-
-

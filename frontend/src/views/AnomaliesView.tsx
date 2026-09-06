@@ -36,18 +36,12 @@ function readableLabel(value?: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/^\w/, (letter: string) => letter.toUpperCase());
 }
 
-function anomalyTone(value?: string) {
-  const label = value?.toUpperCase() ?? "";
-  if (label.includes("HIGH")) return "bg-rose-50 text-rose-700 ring-rose-100";
-  if (label.includes("OUTAGE")) return "bg-orange-50 text-orange-700 ring-orange-100";
-  if (label.includes("LOCATION")) return "bg-violet-50 text-violet-700 ring-violet-100";
-  return "bg-slate-100 text-slate-600 ring-slate-200";
-}
+const typeBadge = "bg-alert-weak text-alert ring-1 ring-alert/20";
 
-function statusTone(value?: string) {
+function statusBadge(value?: string) {
   return value?.toUpperCase() === "SUCCESS"
-    ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-    : "bg-rose-50 text-rose-700 ring-rose-100";
+    ? "border border-hairline text-ink-muted"
+    : "bg-alert-weak text-alert";
 }
 
 function splitBusinessReasons(value?: string) {
@@ -60,7 +54,7 @@ function splitBusinessReasons(value?: string) {
 
 function explainAnomaly(row: AnomalyRow) {
   const type = row.anomaly_type?.toUpperCase() ?? "";
-  const operator = row.operator ?? "cet operateur";
+  const operator = row.operator ?? "cet opérateur";
   const wilaya = row.sender_wilaya ?? row.receiver_wilaya ?? "cette wilaya";
   const amount = formatAmount(row.amount);
   const status = row.status?.toUpperCase() ?? "";
@@ -69,15 +63,15 @@ function explainAnomaly(row: AnomalyRow) {
 
   if (type.includes("HIGH")) {
     return {
-      title: "Montant inhabituellement eleve",
-      summary: `Cette transaction est signalee parce que son montant (${amount}) est tres eleve par rapport au comportement attendu dans le dataset.`,
+      title: "Montant inhabituellement élevé",
+      summary: `Cette transaction est signalée parce que son montant (${amount}) est très élevé par rapport au comportement attendu dans le dataset.`,
       factors: [
-        "Le montant est un signal important pour la detection.",
+        "Le montant est un signal important pour la détection.",
         `La transaction concerne ${operator} dans ${wilaya}.`,
-        `Score d'anomalie calcule: ${score}.`,
+        `Score d'anomalie calculé : ${score}.`,
         status === "SUCCESS"
-          ? "Le paiement a reussi, donc il peut representer un risque financier reel."
-          : "Le paiement a echoue, mais la tentative reste importante pour l'analyse du risque.",
+          ? "Le paiement a réussi, il peut donc représenter un risque financier réel."
+          : "Le paiement a échoué, mais la tentative reste importante pour l'analyse du risque.",
       ],
       businessReasons,
     };
@@ -85,15 +79,15 @@ function explainAnomaly(row: AnomalyRow) {
 
   if (type.includes("OUTAGE")) {
     return {
-      title: "Suspicion de probleme operateur",
-      summary: `Cette transaction est signalee car elle ressemble a un incident ou une interruption de service chez ${operator}.`,
+      title: "Suspicion de problème opérateur",
+      summary: `Cette transaction est signalée car elle ressemble à un incident ou une interruption de service chez ${operator}.`,
       factors: [
         status === "FAILED"
-          ? "Le statut FAILED renforce l'hypothese d'un probleme technique ou d'une panne temporaire."
-          : "Même si le statut n'est pas FAILED, le contexte operateur reste anormal.",
-        `Zone observee: ${wilaya}.`,
-        `Montant observe: ${amount}.`,
-        `Score d'anomalie calcule: ${score}.`,
+          ? "Le statut FAILED renforce l'hypothèse d'un problème technique ou d'une panne temporaire."
+          : "Même si le statut n'est pas FAILED, le contexte opérateur reste anormal.",
+        `Zone observée : ${wilaya}.`,
+        `Montant observé : ${amount}.`,
+        `Score d'anomalie calculé : ${score}.`,
       ],
       businessReasons,
     };
@@ -102,29 +96,33 @@ function explainAnomaly(row: AnomalyRow) {
   if (type.includes("LOCATION")) {
     return {
       title: "Localisation inhabituelle",
-      summary: `Cette transaction est detectee car sa localisation (${wilaya}) parait inhabituelle par rapport aux habitudes observees.`,
+      summary: `Cette transaction est détectée car sa localisation (${wilaya}) paraît inhabituelle par rapport aux habitudes observées.`,
       factors: [
         "La wilaya ou le chemin de transaction sort du comportement attendu.",
-        `Operateur concerne: ${operator}.`,
-        `Montant observe: ${amount}.`,
-        `Score d'anomalie calcule: ${score}.`,
+        `Opérateur concerné : ${operator}.`,
+        `Montant observé : ${amount}.`,
+        `Score d'anomalie calculé : ${score}.`,
       ],
       businessReasons,
     };
   }
 
   return {
-    title: "Transaction consideree comme atypique",
-    summary: "Cette transaction est signalee par le consensus de detection car plusieurs signaux statistiques ou metier la rendent differente des transactions normales.",
+    title: "Transaction considérée comme atypique",
+    summary:
+      "Cette transaction est signalée par le consensus de détection car plusieurs signaux statistiques ou métier la rendent différente des transactions normales.",
     factors: [
-      `Type detecte: ${readableLabel(row.anomaly_type)}.`,
-      `Operateur concerne: ${operator}.`,
-      `Zone observee: ${wilaya}.`,
-      `Score d'anomalie calcule: ${score}.`,
+      `Type détecté : ${readableLabel(row.anomaly_type)}.`,
+      `Opérateur concerné : ${operator}.`,
+      `Zone observée : ${wilaya}.`,
+      `Score d'anomalie calculé : ${score}.`,
     ],
     businessReasons,
   };
 }
+
+const selectClass =
+  "mt-1 h-10 w-full rounded-lg border border-hairline bg-surface px-3 text-sm font-medium text-ink outline-none transition focus:border-anchor focus:ring-2 focus:ring-anchor/20";
 
 export function AnomaliesView({ results }: AnomaliesViewProps) {
   const [wilaya, setWilaya] = useState("");
@@ -133,25 +131,22 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<AnomalyRow | null>(null);
 
-  const rows = useMemo<AnomalyRow[]>(
-    () => {
-      const ensemble = results.find((result) => result.algorithm === "ensemble");
-      return (ensemble?.preview ?? []).map((transaction) => ({
-        ...transaction,
-        model: "ensemble",
-      }));
-    },
-    [results],
-  );
+  const rows = useMemo<AnomalyRow[]>(() => {
+    const ensemble = results.find((result) => result.algorithm === "ensemble");
+    return (ensemble?.preview ?? []).map((transaction) => ({
+      ...transaction,
+      model: "ensemble",
+    }));
+  }, [results]);
 
   const filteredRows = useMemo(
     () =>
       rows.filter((row) => {
         const rowWilaya = row.sender_wilaya ?? row.receiver_wilaya ?? "";
         return (
-          (!wilaya || rowWilaya === wilaya)
-          && (!operator || row.operator === operator)
-          && (!anomalyType || row.anomaly_type === anomalyType)
+          (!wilaya || rowWilaya === wilaya) &&
+          (!operator || row.operator === operator) &&
+          (!anomalyType || row.anomaly_type === anomalyType)
         );
       }),
     [anomalyType, operator, rows, wilaya],
@@ -165,13 +160,11 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
     [endIndex, filteredRows, startIndex],
   );
   const wilayas = useMemo(
-    () => [...new Set(rows.map((row) => row.sender_wilaya ?? row.receiver_wilaya ?? "").filter(Boolean))].sort(),
+    () =>
+      [...new Set(rows.map((row) => row.sender_wilaya ?? row.receiver_wilaya ?? "").filter(Boolean))].sort(),
     [rows],
   );
-  const anomalyTypes = useMemo(
-    () => uniqueValues(rows, "anomaly_type"),
-    [rows],
-  );
+  const anomalyTypes = useMemo(() => uniqueValues(rows, "anomaly_type"), [rows]);
   const hasFilters = Boolean(wilaya || operator || anomalyType);
 
   useEffect(() => {
@@ -187,7 +180,7 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
 
   if (results.length === 0) {
     return (
-      <section className="dashboard-card p-6 text-sm font-medium text-slate-500">
+      <section className="dashboard-card p-6 text-sm font-medium text-ink-muted">
         Televersez un fichier pour afficher les transactions suspectes.
       </section>
     );
@@ -196,178 +189,168 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
   return (
     <section className="space-y-4" aria-label="Vue anomalies">
       <motion.div
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="dashboard-card border-emerald-100 bg-white p-4 shadow-[0_16px_38px_-28px_rgba(15,23,42,0.45)]"
-        initial={{ opacity: 0, y: -14, scale: 0.99 }}
-        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-        whileHover={{ boxShadow: "0 18px 38px -28px rgba(5, 99, 76, 0.4)" }}
+        className="dashboard-card p-4"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm font-extrabold text-ink">
-            <span className="flex h-8 w-8 items-center justify-center rounded bg-emerald-50 text-mauri-green">
-              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-anchor-weak text-anchor"
+              aria-hidden="true"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
             </span>
             Filtres
           </div>
-          <motion.button
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-500 shadow-sm transition hover:-translate-y-0.5 hover:border-mauri-green hover:text-mauri-green hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+          <button
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-hairline px-3 text-xs font-semibold text-ink-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
             disabled={!hasFilters}
             onClick={resetFilters}
             type="button"
-            whileHover={hasFilters ? { y: -2, scale: 1.02 } : undefined}
-            whileTap={hasFilters ? { scale: 0.97 } : undefined}
           >
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-            Reinitialiser
-          </motion.button>
+            Réinitialiser
+          </button>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          <motion.label
-            animate={{ opacity: 1, x: 0 }}
-            className="text-xs font-extrabold text-slate-600"
-            initial={{ opacity: 0, x: -10 }}
-            transition={{ delay: 0.16, duration: 0.32 }}
-          >
+          <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
             Wilaya
             <select
               aria-label="Filtrer par wilaya"
-              className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-ink outline-none transition hover:border-slate-400 focus:border-mauri-green focus:ring-2 focus:ring-emerald-100"
+              className={selectClass}
               onChange={(event) => setWilaya(event.target.value)}
               value={wilaya}
             >
               <option value="">Toutes</option>
-              {wilayas.map((value) => <option key={value}>{value}</option>)}
+              {wilayas.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
             </select>
-          </motion.label>
+          </label>
 
-          <motion.label
-            animate={{ opacity: 1, x: 0 }}
-            className="text-xs font-extrabold text-slate-600"
-            initial={{ opacity: 0, x: 10 }}
-            transition={{ delay: 0.22, duration: 0.32 }}
-          >
-            Operateur
+          <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            Opérateur
             <select
               aria-label="Filtrer par opérateur"
-              className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-ink outline-none transition hover:border-slate-400 focus:border-mauri-green focus:ring-2 focus:ring-emerald-100"
+              className={selectClass}
               onChange={(event) => setOperator(event.target.value)}
               value={operator}
             >
               <option value="">Tous</option>
-              {uniqueValues(rows, "operator").map((value) => <option key={value}>{value}</option>)}
+              {uniqueValues(rows, "operator").map((value) => (
+                <option key={value}>{value}</option>
+              ))}
             </select>
-          </motion.label>
+          </label>
 
-          <motion.label
-            animate={{ opacity: 1, x: 0 }}
-            className="text-xs font-extrabold text-slate-600"
-            initial={{ opacity: 0, x: 10 }}
-            transition={{ delay: 0.28, duration: 0.32 }}
-          >
+          <label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
             Type d'anomalie
             <select
               aria-label="Filtrer par type d'anomalie"
-              className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-ink outline-none transition hover:border-slate-400 focus:border-mauri-green focus:ring-2 focus:ring-emerald-100"
+              className={selectClass}
               onChange={(event) => setAnomalyType(event.target.value)}
               value={anomalyType}
             >
               <option value="">Tous</option>
               {anomalyTypes.map((value) => (
-                <option key={value} value={value}>{readableLabel(value)}</option>
+                <option key={value} value={value}>
+                  {readableLabel(value)}
+                </option>
               ))}
             </select>
-          </motion.label>
+          </label>
         </div>
       </motion.div>
 
       <motion.div
+        className="dashboard-card overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="dashboard-card overflow-hidden border-slate-200 bg-white shadow-[0_18px_42px_-30px_rgba(15,23,42,0.45)]"
-        initial={{ opacity: 0, y: 18 }}
-        transition={{ delay: 0.12, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-        whileHover={{ boxShadow: "0 20px 44px -30px rgba(15, 23, 42, 0.52)" }}
+        transition={{ delay: 0.06, duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="soft-scrollbar max-h-[560px] overflow-auto">
-          <table className="w-full min-w-[1240px] table-fixed text-left text-sm">
-            <thead className="sticky top-0 z-10 bg-slate-50/95 text-[11px] uppercase tracking-wide text-slate-500 shadow-[0_1px_0_rgba(148,163,184,0.28)]">
+          <table className="w-full min-w-[1240px] table-fixed text-left text-[13px]">
+            <thead className="sticky top-0 z-10 bg-canvas text-[11px] uppercase tracking-[0.04em] text-ink-muted">
               <tr>
-                <th className="w-[9.5rem] px-4 py-3 font-extrabold">Date</th>
-                <th className="w-[17rem] px-4 py-3 font-extrabold">Transaction</th>
-                <th className="w-24 px-4 py-3 font-extrabold">Score</th>
-                <th className="w-40 px-4 py-3 font-extrabold">Type</th>
-                <th className="w-40 px-4 py-3 font-extrabold">Wilaya</th>
-                <th className="w-32 px-4 py-3 font-extrabold">Operateur</th>
-                <th className="w-36 px-4 py-3 font-extrabold">Montant</th>
-                <th className="w-28 px-4 py-3 font-extrabold">Statut</th>
-                <th className="w-20 px-4 py-3 text-center font-extrabold">Details</th>
+                <th className="w-[9.5rem] px-4 py-2.5 font-semibold">Date</th>
+                <th className="w-[17rem] px-4 py-2.5 font-semibold">Transaction</th>
+                <th className="w-24 px-4 py-2.5 font-semibold">Score</th>
+                <th className="w-40 px-4 py-2.5 font-semibold">Type</th>
+                <th className="w-40 px-4 py-2.5 font-semibold">Wilaya</th>
+                <th className="w-32 px-4 py-2.5 font-semibold">Opérateur</th>
+                <th className="w-36 px-4 py-2.5 font-semibold">Montant</th>
+                <th className="w-28 px-4 py-2.5 font-semibold">Statut</th>
+                <th className="w-20 px-4 py-2.5 text-center font-semibold">Détails</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-hairline">
               {paginatedRows.map((row, index) => {
                 const wilayaName = row.sender_wilaya ?? row.receiver_wilaya ?? "-";
 
                 return (
-                  <motion.tr
-                    animate={{ opacity: 1, x: 0 }}
-                    className="text-slate-700 transition-colors hover:bg-emerald-50/45"
-                    initial={{ opacity: 0, x: 8 }}
+                  <tr
+                    className="text-ink transition-colors hover:bg-anchor-weak/60"
                     key={`${row.model}-${row.transaction_id ?? startIndex + index}`}
-                    transition={{ delay: 0.2 + Math.min(index * 0.012, 0.25), duration: 0.24 }}
                   >
-                    <td className="whitespace-nowrap px-4 py-3.5 text-xs font-semibold text-slate-600">
+                    <td className="tnum whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
                       {formatDate(row.timestamp)}
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className="block max-w-[15rem] truncate font-mono text-xs font-semibold text-slate-700" title={row.transaction_id ?? "-"}>
+                    <td className="px-4 py-3">
+                      <span
+                        className="block max-w-[15rem] truncate font-mono text-xs text-ink"
+                        title={row.transaction_id ?? "-"}
+                      >
                         {row.transaction_id ?? "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 font-mono text-xs font-extrabold text-slate-700">
+                    <td className="tnum px-4 py-3 font-mono text-xs font-medium text-ink">
                       {Number(row.anomaly_score ?? 0).toFixed(3)}
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-extrabold ring-1 ${anomalyTone(row.anomaly_type)}`}>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${typeBadge}`}>
                         {readableLabel(row.anomaly_type)}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3">
                       <span className="block max-w-[9rem] whitespace-normal leading-5" title={wilayaName}>
                         {wilayaName}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3">
                       <span className="block truncate" title={row.operator ?? "-"}>
                         {row.operator ?? "-"}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3.5 font-extrabold text-slate-700">
+                    <td className="tnum whitespace-nowrap px-4 py-3 font-medium text-ink">
                       {formatAmount(row.amount)}
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-extrabold ring-1 ${statusTone(row.status)}`}>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${statusBadge(row.status)}`}
+                      >
                         {row.status ?? "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <motion.button
+                    <td className="px-4 py-3 text-center">
+                      <button
                         aria-label={`Voir ${row.transaction_id ?? "la transaction"}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-white text-mauri-green shadow-sm transition hover:-translate-y-0.5 hover:border-mauri-green hover:bg-emerald-50 hover:shadow-md"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-hairline text-ink-muted transition-colors hover:border-anchor/40 hover:bg-anchor-weak hover:text-anchor"
                         onClick={() => setSelected(row)}
                         type="button"
-                        whileHover={{ y: -2, scale: 1.08 }}
-                        whileTap={{ scale: 0.92 }}
                       >
                         <Eye className="h-4 w-4" />
-                      </motion.button>
+                      </button>
                     </td>
-                  </motion.tr>
+                  </tr>
                 );
               })}
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-10 text-center text-sm text-slate-500" colSpan={9}>
-                    Aucune transaction ne correspond aux filtres selectionnes.
+                  <td className="px-4 py-10 text-center text-sm text-ink-muted" colSpan={9}>
+                    Aucune transaction ne correspond aux filtres sélectionnés.
                   </td>
                 </tr>
               ) : null}
@@ -376,20 +359,15 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
         </div>
       </motion.div>
 
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="dashboard-card flex flex-col gap-3 px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
-        initial={{ opacity: 0, y: 10 }}
-        transition={{ delay: 0.28, duration: 0.35 }}
-      >
-        <div className="text-xs font-medium text-slate-500">
+      <div className="dashboard-card flex flex-col gap-3 px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="tnum text-xs font-medium text-ink-muted">
           {filteredRows.length > 0
-            ? `${(startIndex + 1).toLocaleString("fr-FR")} - ${endIndex.toLocaleString("fr-FR")} sur ${filteredRows.length.toLocaleString("fr-FR")} anomalies`
+            ? `${(startIndex + 1).toLocaleString("fr-FR")} – ${endIndex.toLocaleString("fr-FR")} sur ${filteredRows.length.toLocaleString("fr-FR")} anomalies`
             : "0 anomalie"}
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-mauri-green hover:text-mauri-green disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
             disabled={currentPage <= 1}
             onClick={() => setPage((value) => Math.max(1, value - 1))}
             type="button"
@@ -397,11 +375,11 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
             <ChevronLeft className="h-3.5 w-3.5" />
             Precedent
           </button>
-          <span className="min-w-24 text-center text-xs font-semibold text-slate-600">
+          <span className="tnum min-w-24 text-center text-xs font-medium text-ink-muted">
             Page {currentPage.toLocaleString("fr-FR")} / {pageCount.toLocaleString("fr-FR")}
           </span>
           <button
-            className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-mauri-green hover:text-mauri-green disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
             disabled={currentPage >= pageCount}
             onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
             type="button"
@@ -410,129 +388,151 @@ export function AnomaliesView({ results }: AnomaliesViewProps) {
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
-      </motion.div>
+      </div>
 
-      {selected ? (() => {
-        const explanation = explainAnomaly(selected);
+      {selected
+        ? (() => {
+            const explanation = explainAnomaly(selected);
 
-        return (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/50 p-4" role="dialog">
-            <div className="max-h-[85vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white shadow-[0_28px_80px_-35px_rgba(15,23,42,0.75)]">
-              <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/80 p-5">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Details de detection</p>
-                  <h3 className="mt-1 text-lg font-black text-ink">{explanation.title}</h3>
-                  <p className="mt-1 max-w-2xl text-sm font-medium text-slate-500">
-                    Transaction {selected.transaction_id ?? "-"}
-                  </p>
-                </div>
-                <button
-                  aria-label="Fermer les details"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                  onClick={() => setSelected(null)}
-                  type="button"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </header>
+            return (
+              <div
+                className="fixed inset-0 z-[1000] flex items-center justify-center bg-ink/40 p-4"
+                role="dialog"
+              >
+                <div className="max-h-[85vh] w-full max-w-3xl overflow-auto rounded-xl border border-hairline bg-surface shadow-pop">
+                  <header className="flex items-start justify-between gap-4 border-b border-hairline bg-canvas p-5">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+                        Détails de détection
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold text-ink">{explanation.title}</h3>
+                      <p className="mt-1 max-w-2xl font-mono text-xs text-ink-muted">
+                        Transaction {selected.transaction_id ?? "-"}
+                      </p>
+                    </div>
+                    <button
+                      aria-label="Fermer les details"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-hairline text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
+                      onClick={() => setSelected(null)}
+                      type="button"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </header>
 
-              <div className="space-y-4 p-5">
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-mauri-green">
-                    Pourquoi cette transaction est suspecte
-                  </p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{explanation.summary}</p>
-                </div>
+                  <div className="space-y-4 p-5">
+                    <div className="rounded-xl border border-anchor/20 bg-anchor-weak p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-anchor">
+                        Pourquoi cette transaction est suspecte
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-ink">{explanation.summary}</p>
+                    </div>
 
-                <div className="grid gap-3 md:grid-cols-4">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">Type</p>
-                    <span className={`mt-2 inline-flex rounded-lg px-2.5 py-1 text-xs font-extrabold ring-1 ${anomalyTone(selected.anomaly_type)}`}>
-                      {readableLabel(selected.anomaly_type)}
-                    </span>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">Score</p>
-                    <p className="mt-2 font-mono text-sm font-black text-slate-700">
-                      {Number(selected.anomaly_score ?? 0).toFixed(3)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">Montant</p>
-                    <p className="mt-2 text-sm font-black text-slate-700">{formatAmount(selected.amount)}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">Statut</p>
-                    <span className={`mt-2 inline-flex rounded-lg px-2.5 py-1 text-xs font-extrabold ring-1 ${statusTone(selected.status)}`}>
-                      {selected.status ?? "-"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                  <section className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <h4 className="text-sm font-black text-ink">Facteurs qui expliquent la detection</h4>
-                    <ul className="mt-3 space-y-2">
-                      {explanation.factors.map((factor) => (
-                        <li className="flex gap-2 text-sm font-medium leading-6 text-slate-600" key={factor}>
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-mauri-green" />
-                          <span>{factor}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-
-                  <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                    <h4 className="text-sm font-black text-ink">Contexte transaction</h4>
-                    <dl className="mt-3 space-y-3 text-sm">
-                      <div>
-                        <dt className="text-xs font-extrabold uppercase text-slate-400">Date</dt>
-                        <dd className="mt-1 font-semibold text-slate-700">{formatDate(selected.timestamp)}</dd>
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <div className="rounded-lg border border-hairline p-3">
+                        <p className="text-[11px] font-semibold uppercase text-ink-faint">Type</p>
+                        <span className={`mt-2 inline-flex rounded-md px-2 py-1 text-xs font-semibold ${typeBadge}`}>
+                          {readableLabel(selected.anomaly_type)}
+                        </span>
                       </div>
-                      <div>
-                        <dt className="text-xs font-extrabold uppercase text-slate-400">Wilaya</dt>
-                        <dd className="mt-1 font-semibold text-slate-700">
-                          {selected.sender_wilaya ?? selected.receiver_wilaya ?? "-"}
-                        </dd>
+                      <div className="rounded-lg border border-hairline p-3">
+                        <p className="text-[11px] font-semibold uppercase text-ink-faint">Score</p>
+                        <p className="tnum mt-2 font-mono text-sm font-semibold text-ink">
+                          {Number(selected.anomaly_score ?? 0).toFixed(3)}
+                        </p>
                       </div>
-                      <div>
-                        <dt className="text-xs font-extrabold uppercase text-slate-400">Operateur</dt>
-                        <dd className="mt-1 font-semibold text-slate-700">{selected.operator ?? "-"}</dd>
+                      <div className="rounded-lg border border-hairline p-3">
+                        <p className="text-[11px] font-semibold uppercase text-ink-faint">Montant</p>
+                        <p className="tnum mt-2 text-sm font-semibold text-ink">{formatAmount(selected.amount)}</p>
                       </div>
-                    </dl>
-                  </section>
+                      <div className="rounded-lg border border-hairline p-3">
+                        <p className="text-[11px] font-semibold uppercase text-ink-faint">Statut</p>
+                        <span
+                          className={`mt-2 inline-flex rounded-md px-2 py-1 text-xs font-semibold ${statusBadge(selected.status)}`}
+                        >
+                          {selected.status ?? "-"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                      <section className="rounded-xl border border-hairline p-4">
+                        <h4 className="text-sm font-semibold text-ink">
+                          Facteurs qui expliquent la détection
+                        </h4>
+                        <ul className="mt-3 space-y-2">
+                          {explanation.factors.map((factor) => (
+                            <li
+                              className="flex gap-2 text-sm leading-6 text-ink-muted"
+                              key={factor}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-anchor"
+                              />
+                              <span>{factor}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+
+                      <section className="rounded-xl border border-hairline bg-canvas p-4">
+                        <h4 className="text-sm font-semibold text-ink">Contexte transaction</h4>
+                        <dl className="mt-3 space-y-3 text-sm">
+                          <div>
+                            <dt className="text-[11px] font-semibold uppercase text-ink-faint">Date</dt>
+                            <dd className="tnum mt-1 font-medium text-ink">{formatDate(selected.timestamp)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] font-semibold uppercase text-ink-faint">Wilaya</dt>
+                            <dd className="mt-1 font-medium text-ink">
+                              {selected.sender_wilaya ?? selected.receiver_wilaya ?? "-"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-[11px] font-semibold uppercase text-ink-faint">Opérateur</dt>
+                            <dd className="mt-1 font-medium text-ink">{selected.operator ?? "-"}</dd>
+                          </div>
+                        </dl>
+                      </section>
+                    </div>
+
+                    {explanation.businessReasons.length > 0 ? (
+                      <section className="rounded-xl border border-alert/20 bg-alert-weak p-4">
+                        <h4 className="text-sm font-semibold text-alert">Règles métier déclenchées</h4>
+                        <ul className="mt-3 space-y-2">
+                          {explanation.businessReasons.map((reason) => (
+                            <li className="flex gap-2 text-sm leading-6 text-alert" key={reason}>
+                              <span
+                                aria-hidden="true"
+                                className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-alert"
+                              />
+                              <span>{reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
+
+                    <details className="rounded-xl border border-hairline p-4">
+                      <summary className="cursor-pointer text-sm font-semibold text-ink">
+                        Données techniques complètes
+                      </summary>
+                      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {Object.entries(selected).map(([key, value]) => (
+                          <div className="rounded-lg bg-canvas p-3" key={key}>
+                            <dt className="text-[11px] uppercase text-ink-muted">{key}</dt>
+                            <dd className="mt-1 break-words font-mono text-xs text-ink">{String(value ?? "-")}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </details>
+                  </div>
                 </div>
-
-                {explanation.businessReasons.length > 0 ? (
-                  <section className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
-                    <h4 className="text-sm font-black text-orange-800">Regles metier declenchees</h4>
-                    <ul className="mt-3 space-y-2">
-                      {explanation.businessReasons.map((reason) => (
-                        <li className="flex gap-2 text-sm font-semibold leading-6 text-orange-800" key={reason}>
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
-                          <span>{reason}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-
-                <details className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <summary className="cursor-pointer text-sm font-black text-ink">Donnees techniques completes</summary>
-                  <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {Object.entries(selected).map(([key, value]) => (
-                      <div className="rounded bg-slate-50 p-3" key={key}>
-                        <dt className="text-xs uppercase text-slate-500">{key}</dt>
-                        <dd className="mt-1 break-words text-sm text-slate-800">{String(value ?? "-")}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </details>
               </div>
-            </div>
-          </div>
-        );
-      })() : null}    </section>
+            );
+          })()
+        : null}
+    </section>
   );
 }
-

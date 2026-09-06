@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 type StatCardProps = {
   title: string;
@@ -8,47 +8,34 @@ type StatCardProps = {
   detail: string;
   status: string;
   icon: LucideIcon;
-  tone?: "green" | "gold" | "red" | "blue";
+  /** `alert` is reserved for the detected-fraud figure only. */
+  tone?: "default" | "alert";
   nowrapValue?: boolean;
 };
 
 const toneClasses = {
-  green: {
-    card:
-      "border-emerald-500/50 bg-[radial-gradient(circle_at_90%_95%,rgba(255,255,255,0.18),transparent_28%),linear-gradient(135deg,#4f46e5_0%,#4338ca_52%,#312e81_100%)] shadow-[0_14px_30px_-22px_rgba(4,120,87,0.72)]",
-    icon: "bg-white/16 text-emerald-50 ring-1 ring-inset ring-white/30 shadow-sm",
-    badge: "bg-white/14 text-emerald-50 ring-white/20",
+  default: {
+    topRule: "bg-anchor/70",
+    icon: "bg-anchor-weak text-anchor",
+    value: "text-ink",
   },
-  gold: {
-    card:
-      "border-amber-400/60 bg-[radial-gradient(circle_at_92%_92%,rgba(255,255,255,0.18),transparent_30%),linear-gradient(135deg,#f59e0b_0%,#f97316_55%,#b45309_100%)] shadow-[0_14px_30px_-22px_rgba(217,119,6,0.68)]",
-    icon: "bg-white/20 text-white ring-1 ring-inset ring-white/25 shadow-sm",
-    badge: "bg-white/16 text-amber-50 ring-white/22",
+  alert: {
+    topRule: "bg-alert/70",
+    icon: "bg-alert-weak text-alert",
+    value: "text-alert",
   },
-  red: {
-    card:
-      "border-rose-500/60 bg-[radial-gradient(circle_at_92%_95%,rgba(255,255,255,0.16),transparent_30%),linear-gradient(135deg,#e11d48_0%,#db2777_52%,#9f1239_100%)] shadow-[0_14px_30px_-22px_rgba(225,29,72,0.68)]",
-    icon: "bg-white/15 text-rose-50 ring-1 ring-inset ring-white/25 shadow-sm",
-    badge: "bg-white/14 text-rose-50 ring-white/20",
-  },
-  blue: {
-    card:
-      "border-blue-500/60 bg-[radial-gradient(circle_at_92%_95%,rgba(255,255,255,0.17),transparent_30%),linear-gradient(135deg,#3b82f6_0%,#2563eb_54%,#3730a3_100%)] shadow-[0_14px_30px_-22px_rgba(37,99,235,0.68)]",
-    icon: "bg-white/15 text-blue-50 ring-1 ring-inset ring-white/25 shadow-sm",
-    badge: "bg-white/14 text-blue-50 ring-white/20",
-  },
-};
+} as const;
 
 function parseDisplayValue(value: string) {
   if (value === "—" || value.trim() === "") {
     return null;
   }
 
-  const match = value.match(/[\d\s\u202f.,]+/);
+  const match = value.match(/[\d\s .,]+/);
   if (!match) return null;
 
   const rawNumber = match[0];
-  const normalized = rawNumber.replace(/[\s\u202f]/g, "").replace(",", ".");
+  const normalized = rawNumber.replace(/[\s ]/g, "").replace(",", ".");
   const target = Number(normalized);
   if (!Number.isFinite(target)) return null;
 
@@ -63,17 +50,18 @@ function parseDisplayValue(value: string) {
 
 function CountUpValue({ value }: { value: string }) {
   const parsed = useMemo(() => parseDisplayValue(value), [value]);
+  const reduceMotion = useReducedMotion();
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
-    if (!parsed) {
+    if (!parsed || reduceMotion) {
       setDisplayValue(value);
       return;
     }
 
     const parsedValue = parsed;
     let frameId = 0;
-    const duration = 620;
+    const duration = 600;
     const start = performance.now();
     const formatter = new Intl.NumberFormat("fr-FR", {
       maximumFractionDigits: parsedValue.decimals,
@@ -84,9 +72,10 @@ function CountUpValue({ value }: { value: string }) {
       const progress = Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = parsedValue.target * eased;
-      const formatted = parsedValue.decimalSeparator === "."
-        ? formatter.format(current).replace(",", ".")
-        : formatter.format(current);
+      const formatted =
+        parsedValue.decimalSeparator === "."
+          ? formatter.format(current).replace(",", ".")
+          : formatter.format(current);
       setDisplayValue(`${parsedValue.prefix}${formatted}${parsedValue.suffix}`);
 
       if (progress < 1) {
@@ -96,7 +85,7 @@ function CountUpValue({ value }: { value: string }) {
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [parsed, value]);
+  }, [parsed, reduceMotion, value]);
 
   return <>{displayValue}</>;
 }
@@ -107,85 +96,45 @@ export function StatCard({
   detail,
   status,
   icon: Icon,
-  tone = "green",
+  tone = "default",
   nowrapValue = false,
 }: StatCardProps) {
   const colors = toneClasses[tone];
 
   return (
     <motion.section
-      className={`group relative flex min-h-[136px] flex-col overflow-hidden rounded-2xl border p-3.5 text-white ${colors.card}`}
+      className="relative flex min-h-[132px] flex-col overflow-hidden rounded-xl border border-hairline bg-surface p-4 shadow-card transition-[box-shadow,border-color,transform] duration-150 hover:-translate-y-px hover:border-anchor/30 hover:shadow-card-hover"
       variants={{
-        hidden: { opacity: 0, y: 20, scale: 0.98 },
-        visible: { opacity: 1, y: 0, scale: 1 },
-        hover: {
-          y: -6,
-          filter: "saturate(1.05)",
-          boxShadow: "0 18px 35px rgba(15, 23, 42, 0.18)",
-        },
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0 },
       }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      whileHover="hover"
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
     >
-      <motion.span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 skew-x-[-18deg] bg-white/18 blur-[2px]"
-        variants={{
-          visible: { x: "-120%", opacity: 0 },
-          hover: { x: "360%", opacity: [0, 0.45, 0] },
-        }}
-        transition={{ duration: 0.75, ease: "easeOut" }}
-      />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-8 -right-6 text-white/10 group-hover:text-white/14"
-        animate={{ x: [0, -4, 0], y: [0, -5, 0], rotate: [0, -1.5, 0] }}
-        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-        variants={{
-          hover: { scale: 1.04, opacity: 0.95 },
-        }}
-      >
-        <Icon className="h-24 w-24" />
-      </motion.div>
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/40" />
-      <span className="pointer-events-none absolute inset-0 bg-white/[0.03] opacity-0 transition group-hover:opacity-100" />
-      <div className="relative flex min-w-0 items-start justify-between gap-2.5">
-        <div className="min-w-0 flex-1">
-          <p className="pr-1 text-xs font-extrabold leading-4 text-white/90">{title}</p>
-          <p
-            className={`mt-1.5 text-[clamp(1.22rem,1.8vw,1.55rem)] font-black leading-7 text-white ${
-              nowrapValue ? "whitespace-nowrap" : "max-w-[13rem]"
-            }`}
-          >
-            <CountUpValue value={value} />
-          </p>
-        </div>
-        <span className={`shrink-0 rounded-xl p-2.5 backdrop-blur ${colors.icon}`} title={title}>
-          <motion.span
-            className="block"
-            variants={{
-              visible: { scale: 1, rotate: 0 },
-              hover: { scale: 1.14, rotate: -2 },
-            }}
-            transition={{ duration: 0.22 }}
-          >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-          </motion.span>
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-0.5 ${colors.topRule}`} />
+
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">{title}</p>
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colors.icon}`}
+          aria-hidden="true"
+        >
+          <Icon className="h-4 w-4" />
         </span>
       </div>
-      <div className="relative mt-auto flex min-w-0 items-end justify-between gap-2 pt-3">
-        <p className="min-w-0 text-xs font-semibold leading-4 text-white/84">{detail}</p>
-        <motion.span
-          className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold ring-1 ${colors.badge}`}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: [0.95, 1, 1.018, 1] }}
-          transition={{
-            opacity: { delay: 0.46, duration: 0.28 },
-            scale: { delay: 0.46, duration: 3.8, repeat: Infinity, repeatDelay: 2.6, ease: "easeInOut" },
-          }}
-        >
+
+      <p
+        className={`tnum mt-2 text-[1.75rem] font-semibold leading-8 ${colors.value} ${
+          nowrapValue ? "truncate" : ""
+        }`}
+      >
+        <CountUpValue value={value} />
+      </p>
+
+      <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+        <p className="min-w-0 text-xs font-medium leading-4 text-ink-muted">{detail}</p>
+        <span className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] font-medium text-ink-muted">
           {status}
-        </motion.span>
+        </span>
       </div>
     </motion.section>
   );

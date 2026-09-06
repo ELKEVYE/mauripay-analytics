@@ -31,57 +31,55 @@ export function HourlyHeatmap({ rows, compact = false }: HourlyHeatmapProps) {
 
   return (
     <motion.section
-      className={`dashboard-card chart-card flex flex-col border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/45 ${
-        compact ? "min-h-[360px] lg:min-h-0" : "p-4"
-      }`}
-      initial={{ opacity: 0, y: 22, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      whileHover={{
-        y: -5,
-        boxShadow: "0 24px 55px -34px rgba(15, 23, 42, 0.45)",
-      }}
-      transition={{ duration: 0.46, ease: "easeOut" }}
+      className={`dashboard-card chart-card flex flex-col ${compact ? "min-h-[360px] lg:min-h-0" : ""}`}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: "easeOut" }}
     >
       <header className="mb-3 flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-emerald-50 text-mauri-green">
-          <Clock3 className="h-[18px] w-[18px]" aria-hidden="true" />
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-anchor-weak text-anchor"
+          aria-hidden="true"
+        >
+          <Clock3 className="h-[18px] w-[18px]" />
         </span>
         <div>
-          <h2 className="text-sm font-extrabold text-ink">Heatmap horaire</h2>
-          <p className="mt-0.5 text-xs font-medium text-slate-500">Activite par jour et par heure</p>
+          <h2 className="text-[13px] font-semibold text-ink">Heatmap horaire</h2>
+          <p className="mt-0.5 text-xs text-ink-muted">Activité par jour et par heure</p>
         </div>
       </header>
-      <div className="soft-scrollbar min-h-0 flex-1 overflow-x-auto rounded bg-white/70 p-2">
+      <div className="soft-scrollbar min-h-0 flex-1 overflow-x-auto">
         <div
-          className={`grid min-w-[760px] gap-1.5 ${compact ? "xl:min-w-0" : ""}`}
-          style={{ gridTemplateColumns: "44px repeat(24, minmax(14px, 1fr))" }}
+          className={`grid min-w-[760px] gap-1 ${compact ? "xl:min-w-0" : ""}`}
+          style={{ gridTemplateColumns: "40px repeat(24, minmax(14px, 1fr))" }}
         >
           <div />
           {Array.from({ length: 24 }, (_, hour) => (
-            <div className="self-center text-center text-[10px] font-bold text-slate-500" key={hour}>
+            <div className="tnum self-center text-center text-[10px] font-medium text-ink-faint" key={hour}>
               {hour}
             </div>
           ))}
-          {DAYS.map((day) => (
+          {DAYS.map((day, dayIndex) => (
             <div className="contents" key={day}>
-              <div className="flex items-center text-xs font-bold text-slate-600">{DAY_LABELS[day]}</div>
+              <div className="flex items-center text-[11px] font-medium text-ink-muted">
+                {DAY_LABELS[day]}
+              </div>
               {Array.from({ length: 24 }, (_, hour) => {
                 const value = valueBySlot.get(`${day}-${hour}`) ?? 0;
-                const opacity = 0.1 + (value / max) * 0.82;
+                const intensity = 0.06 + (value / max) * 0.9;
                 return (
                   <motion.div
-                    className="h-5 rounded border border-white shadow-sm transition hover:scale-110 hover:ring-2 hover:ring-emerald-200"
-                    initial={{ opacity: 0, scale: 0.82 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    className="h-5 rounded-[3px] transition-shadow hover:ring-1 hover:ring-anchor/40"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{
-                      delay: 0.08 + DAYS.indexOf(day) * 0.035 + hour * 0.006,
-                      duration: 0.22,
+                      delay: 0.05 + dayIndex * 0.03 + hour * 0.004,
+                      duration: 0.2,
                       ease: "easeOut",
                     }}
-                    whileHover={{ scale: 1.18, zIndex: 2 }}
                     key={`${day}-${hour}`}
-                    style={{ backgroundColor: `rgba(31, 122, 91, ${opacity})` }}
-                    title={`${DAY_LABELS[day]} ${hour}h: ${value.toLocaleString("fr-FR")} transactions`}
+                    style={{ backgroundColor: `rgba(12, 92, 76, ${intensity})` }}
+                    title={`${DAY_LABELS[day]} ${hour}h — ${value.toLocaleString("fr-FR")} transactions`}
                   />
                 );
               })}
@@ -89,9 +87,13 @@ export function HourlyHeatmap({ rows, compact = false }: HourlyHeatmapProps) {
           ))}
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-end gap-2 text-[11px] font-bold text-slate-500">
+      <div className="mt-3 flex items-center justify-end gap-2 text-[11px] font-medium text-ink-muted">
         <span>Faible</span>
-        <span className="h-2 w-12 rounded-full bg-gradient-to-r from-emerald-100 to-mauri-green" />
+        <span
+          aria-hidden="true"
+          className="h-2 w-16 rounded-full"
+          style={{ background: "linear-gradient(90deg, rgba(12,92,76,0.10), rgba(12,92,76,0.95))" }}
+        />
         <span>Fort</span>
       </div>
     </motion.section>
