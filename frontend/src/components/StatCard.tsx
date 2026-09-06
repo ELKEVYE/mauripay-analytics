@@ -15,7 +15,7 @@ type StatCardProps = {
 const toneClasses = {
   green: {
     card:
-      "border-emerald-500/50 bg-[radial-gradient(circle_at_90%_95%,rgba(255,255,255,0.18),transparent_28%),linear-gradient(135deg,#059669_0%,#047857_52%,#064e3b_100%)] shadow-[0_14px_30px_-22px_rgba(4,120,87,0.72)]",
+      "border-emerald-500/50 bg-[radial-gradient(circle_at_90%_95%,rgba(255,255,255,0.18),transparent_28%),linear-gradient(135deg,#4f46e5_0%,#4338ca_52%,#312e81_100%)] shadow-[0_14px_30px_-22px_rgba(4,120,87,0.72)]",
     icon: "bg-white/16 text-emerald-50 ring-1 ring-inset ring-white/30 shadow-sm",
     badge: "bg-white/14 text-emerald-50 ring-white/20",
   },

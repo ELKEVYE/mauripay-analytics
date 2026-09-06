@@ -359,7 +359,7 @@ export function AppLayout({
 
       <motion.aside
         data-testid="app-sidebar"
-        className={`app-sidebar fixed bottom-0 left-0 top-0 z-50 flex w-64 flex-col overflow-hidden bg-gradient-to-b from-[#064e3b] via-[#065f46] to-[#043b2f] text-white shadow-[10px_0_34px_-28px_rgba(15,23,42,0.72)] transition-[width,transform] duration-300 ease-in-out lg:z-50 lg:translate-x-0 ${
+        className={`app-sidebar fixed bottom-0 left-0 top-0 z-50 flex w-64 flex-col overflow-hidden bg-gradient-to-b from-[#312e81] via-[#3730a3] to-[#1e1b4b] text-white shadow-[10px_0_34px_-28px_rgba(15,23,42,0.72)] transition-[width,transform] duration-300 ease-in-out lg:z-50 lg:translate-x-0 ${
           sidebarCollapsed ? "lg:w-20" : "lg:w-64"
         } ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
@@ -377,7 +377,7 @@ export function AppLayout({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{
-              boxShadow: "0 18px 30px -20px rgba(16, 185, 129, 0.85)",
+              boxShadow: "0 18px 30px -20px rgba(99, 102, 241, 0.85)",
               y: -2,
             }}
             transition={{ duration: 0.3, ease: "easeOut" }}

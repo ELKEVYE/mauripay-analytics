@@ -47,10 +47,10 @@ body {
 .dashboard-card {
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 8px;
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 58%, rgba(236, 253, 245, 0.55) 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 58%, rgba(238, 242, 255, 0.55) 100%);
   box-shadow:
     0 22px 50px -30px rgba(15, 23, 42, 0.48),
-    0 10px 24px -20px rgba(5, 150, 105, 0.32);
+    0 10px 24px -20px rgba(79, 70, 229, 0.32);
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -58,10 +58,10 @@ body {
 }
 
 .dashboard-card:hover {
-  border-color: rgba(16, 185, 129, 0.32);
+  border-color: rgba(99, 102, 241, 0.32);
   box-shadow:
     0 28px 62px -32px rgba(15, 23, 42, 0.55),
-    0 16px 34px -24px rgba(5, 150, 105, 0.4);
+    0 16px 34px -24px rgba(79, 70, 229, 0.4);
   transform: translateY(-2px);
 }
 
@@ -130,7 +130,7 @@ body {
 
 .app-dark .dashboard-card {
   border-color: #334155;
-  background: linear-gradient(135deg, #172033 0%, #172033 58%, #102a26 100%);
+  background: linear-gradient(135deg, #172033 0%, #172033 58%, #20204a 100%);
 }
 
 .app-dark .chart-title {
@@ -139,7 +139,7 @@ body {
 
 .app-dark .active-nav-cut {
   background-color: #0f172a !important;
-  color: #d1fae5 !important;
+  color: #e0e7ff !important;
   box-shadow: 20px 0 0 #0f172a;
 }
 
@@ -162,8 +162,8 @@ body {
 }
 
 .app-dark .app-sidebar {
-  border-color: #064e3b !important;
-  background-color: #022c22 !important;
+  border-color: #312e81 !important;
+  background-color: #1e1b4b !important;
 }
 
 .app-dark [class*="from-white"] {

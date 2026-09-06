@@ -148,7 +148,7 @@ export function OperationsAnalysisView({ snapshot }: OperationsAnalysisViewProps
                   animationDuration={900}
                   animationEasing="ease-out"
                   dataKey="transactions"
-                  fill="#0f766e"
+                  fill="#7c3aed"
                   isAnimationActive
                   radius={[0, 8, 8, 0]}
                   barSize={14}
@@ -189,7 +189,7 @@ export function OperationsAnalysisView({ snapshot }: OperationsAnalysisViewProps
                   textposition: "outside",
                   hovertemplate: "%{label}<br>%{value:,} transactions<br>%{percent}<extra></extra>",
                   marker: {
-                    colors: ["#047857", "#f59e0b", "#e11d48", "#2563eb", "#64748b", "#7c3aed"],
+                    colors: ["#4338ca", "#f59e0b", "#e11d48", "#2563eb", "#64748b", "#7c3aed"],
                     line: { color: "#ffffff", width: 3 },
                   },
                 },
@@ -235,8 +235,8 @@ export function OperationsAnalysisView({ snapshot }: OperationsAnalysisViewProps
               >
                 <defs>
                   <linearGradient id="channelsGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#059669" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#0f766e" stopOpacity={0.8} />
+                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.8} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />

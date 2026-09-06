@@ -193,7 +193,7 @@ export function GeographicAnalysisView({ snapshot }: GeographicAnalysisViewProps
                   animationDuration={900}
                   animationEasing="ease-out"
                   dataKey="transactions"
-                  fill="#047857"
+                  fill="#4338ca"
                   isAnimationActive
                   radius={[0, 8, 8, 0]}
                   barSize={14}

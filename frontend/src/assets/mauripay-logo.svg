@@ -1,23 +1,23 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="116" fill="#FFFFFF"/>
-  <rect x="30" y="30" width="452" height="452" rx="94" fill="url(#surface)" stroke="#D8FBEA" stroke-width="14"/>
-  <path d="M256 86L374 132V226C374 314 324 384 256 420C188 384 138 314 138 226V132L256 86Z" fill="#047857"/>
+  <rect x="30" y="30" width="452" height="452" rx="94" fill="url(#surface)" stroke="#e0e7ff" stroke-width="14"/>
+  <path d="M256 86L374 132V226C374 314 324 384 256 420C188 384 138 314 138 226V132L256 86Z" fill="#4338ca"/>
   <path d="M256 122L338 154V225C338 289 304 340 256 370C208 340 174 289 174 225V154L256 122Z" fill="#FFFFFF"/>
-  <rect x="196" y="190" width="120" height="84" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="18"/>
+  <rect x="196" y="190" width="120" height="84" rx="18" fill="#eef2ff" stroke="#4338ca" stroke-width="18"/>
   <circle cx="286" cy="232" r="13" fill="#0EA5E9"/>
-  <path d="M216 218H252" stroke="#047857" stroke-width="14" stroke-linecap="round"/>
-  <path d="M216 246H246" stroke="#047857" stroke-width="14" stroke-linecap="round"/>
-  <path d="M196 314H292" stroke="#047857" stroke-width="22" stroke-linecap="round"/>
+  <path d="M216 218H252" stroke="#4338ca" stroke-width="14" stroke-linecap="round"/>
+  <path d="M216 246H246" stroke="#4338ca" stroke-width="14" stroke-linecap="round"/>
+  <path d="M196 314H292" stroke="#4338ca" stroke-width="22" stroke-linecap="round"/>
   <path d="M272 292L312 314L272 336" stroke="#0EA5E9" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M158 372L122 408" stroke="#047857" stroke-width="16" stroke-linecap="round"/>
+  <path d="M158 372L122 408" stroke="#4338ca" stroke-width="16" stroke-linecap="round"/>
   <path d="M354 104L390 68" stroke="#0EA5E9" stroke-width="16" stroke-linecap="round"/>
   <circle cx="410" cy="116" r="10" fill="#0EA5E9"/>
-  <circle cx="104" cy="392" r="10" fill="#047857"/>
+  <circle cx="104" cy="392" r="10" fill="#4338ca"/>
   <defs>
     <linearGradient id="surface" x1="82" y1="64" x2="444" y2="454" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F0FDF4"/>
+      <stop stop-color="#eef2ff"/>
       <stop offset="0.54" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#E0F2FE"/>
+      <stop offset="1" stop-color="#e0e7ff"/>
     </linearGradient>
   </defs>
 </svg>

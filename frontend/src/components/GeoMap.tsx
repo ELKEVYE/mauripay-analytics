@@ -62,7 +62,7 @@ export function GeoMap({ wilayas, compact = false }: GeoMapProps) {
           const position = WILAYA_COORDINATES[item.wilaya];
           if (!position) return null;
           const anomalyRatio = item.anomalies_count / maxAnomalies;
-          const markerColor = anomalyRatio > 0.65 ? "#dc2626" : anomalyRatio > 0.25 ? "#f59e0b" : "#047857";
+          const markerColor = anomalyRatio > 0.65 ? "#dc2626" : anomalyRatio > 0.25 ? "#f59e0b" : "#4338ca";
 
           return (
             <CircleMarker

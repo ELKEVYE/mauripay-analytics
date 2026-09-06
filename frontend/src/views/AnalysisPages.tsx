@@ -205,8 +205,8 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
               <AreaChart data={snapshot?.timeseries.transactions_by_day ?? []} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="transactionsOnlyGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#059669" stopOpacity={0.32} />
-                    <stop offset="95%" stopColor="#059669" stopOpacity={0.03} />
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.32} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
@@ -218,7 +218,7 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
                   dataKey="transactions"
                   dot={{ r: 2, strokeWidth: 1 }}
                   fill="url(#transactionsOnlyGradient)"
-                  stroke="#059669"
+                  stroke="#4f46e5"
                   strokeWidth={2.5}
                   type="monotone"
                 />
@@ -286,7 +286,7 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
                 <XAxis type="number" {...axisStyle} />
                 <YAxis dataKey="operator" type="category" width={120} {...axisStyle} />
                 <Tooltip />
-                <Bar dataKey="transactions" fill="#0f766e" radius={[0, 8, 8, 0]} barSize={14}>
+                <Bar dataKey="transactions" fill="#7c3aed" radius={[0, 8, 8, 0]} barSize={14}>
                   <LabelList
                     className="fill-slate-600 text-[11px] font-bold"
                     dataKey="transactions"
@@ -319,7 +319,7 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
                   textposition: "outside",
                   hovertemplate: "%{label}<br>%{value:,} transactions<br>%{percent}<extra></extra>",
                   marker: {
-                    colors: ["#047857", "#f59e0b", "#e11d48", "#2563eb", "#64748b", "#7c3aed"],
+                    colors: ["#4338ca", "#f59e0b", "#e11d48", "#2563eb", "#64748b", "#7c3aed"],
                     line: { color: "#ffffff", width: 3 },
                   },
                 },
@@ -356,8 +356,8 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
               <BarChart barCategoryGap={28} data={channelChart} margin={{ top: 8, right: 24, left: -4, bottom: 0 }}>
                 <defs>
                   <linearGradient id="transactionChannelsGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#059669" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#0f766e" stopOpacity={0.8} />
+                    <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.8} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
@@ -395,7 +395,7 @@ export function TransactionsAnalysisView({ activeSubPage, snapshot }: Transactio
                 <XAxis type="number" {...axisStyle} />
                 <YAxis dataKey="wilaya" type="category" width={132} {...axisStyle} />
                 <Tooltip formatter={(value) => formatNumber(Number(value))} />
-                <Bar dataKey="transactions" fill="#047857" radius={[0, 8, 8, 0]} barSize={14}>
+                <Bar dataKey="transactions" fill="#4338ca" radius={[0, 8, 8, 0]} barSize={14}>
                   <LabelList
                     className="fill-slate-600 text-[11px] font-bold"
                     dataKey="transactions"

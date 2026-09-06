@@ -112,8 +112,8 @@ export function TemporalAnalysisView({ snapshot }: TemporalAnalysisViewProps) {
               <AreaChart data={transactionsByDay} margin={{ top: 8, right: 14, left: -8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="transactionsGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#059669" stopOpacity={0.32} />
-                    <stop offset="95%" stopColor="#059669" stopOpacity={0.03} />
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.32} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
@@ -129,7 +129,7 @@ export function TemporalAnalysisView({ snapshot }: TemporalAnalysisViewProps) {
                   dot={{ r: 2, strokeWidth: 1 }}
                   fill="url(#transactionsGradient)"
                   isAnimationActive
-                  stroke="#059669"
+                  stroke="#4f46e5"
                   strokeWidth={2.5}
                   type="monotone"
                 />
