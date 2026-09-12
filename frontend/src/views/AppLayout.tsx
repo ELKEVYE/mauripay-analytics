@@ -109,7 +109,7 @@ export function AppLayout({
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         {/* Row 1 — brand, primary nav, controls */}
-        <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-4 px-4 md:px-6">
+        <div className="mx-auto flex h-14 w-full items-center gap-4 px-4 md:px-6">
           <button
             aria-label="Ouvrir le menu"
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-hairline text-ink-muted transition-colors hover:bg-canvas hover:text-ink lg:hidden"
@@ -305,7 +305,7 @@ export function AppLayout({
             >
               <LayoutGroup id="subtab-nav">
                 <nav
-                  className="no-scrollbar mx-auto flex w-full max-w-7xl gap-1 overflow-x-auto px-4 md:px-6"
+                  className="no-scrollbar mx-auto flex w-full gap-1 overflow-x-auto px-4 md:px-6"
                   aria-label={`Sous-sections ${activeSection.label}`}
                 >
                   {subTabs.map((tab) => {
