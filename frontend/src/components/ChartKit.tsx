@@ -1,19 +1,19 @@
 import type { ReactNode } from "react";
 
 /**
- * Shared chart language. Two data colours (anchor green, accent gold) plus a
+ * Shared chart language. Two data colours (anchor blue, accent cyan) plus a
  * muted tertiary; `alert` red is used only on the anomaly views. Categorical
  * breakdowns use a single-hue anchor ramp so a chart reads as one family.
  */
 export const CHART = {
-  anchor: "#0C5C4C",
-  accent: "#A67C3D",
-  muted: "#8CA6A0",
-  alert: "#B42318",
-  grid: "#EAEDEC",
-  axis: "#5C6B65",
-  anchorRamp: ["#0C5C4C", "#3D7A6C", "#6B9B8F", "#9CBDB4", "#C9D9D4", "#A67C3D"],
-  alertRamp: ["#B42318", "#D0685C", "#E8B3AC"],
+  anchor: "#2457C5",
+  accent: "#0E7490",
+  muted: "#8B9DB9",
+  alert: "#B42332",
+  grid: "#E5EBF4",
+  axis: "#52647C",
+  anchorRamp: ["#2457C5", "#4C75CF", "#7B9BDD", "#A6BCEA", "#D2DDF5", "#0E7490"],
+  alertRamp: ["#B42332", "#D36A75", "#EAB3BA"],
 } as const;
 
 export const axisProps = {
@@ -68,4 +68,4 @@ export function ChartTooltip({ active, label, payload, format = defaultFormat }:
   );
 }
 
-export const tooltipCursor = { fill: "rgba(12, 92, 76, 0.06)" } as const;
+export const tooltipCursor = { fill: "rgba(36, 87, 197, 0.06)" } as const;

@@ -78,7 +78,7 @@ export function HourlyHeatmap({ rows, compact = false }: HourlyHeatmapProps) {
                       ease: "easeOut",
                     }}
                     key={`${day}-${hour}`}
-                    style={{ backgroundColor: `rgba(12, 92, 76, ${intensity})` }}
+                    style={{ backgroundColor: `rgba(36, 87, 197, ${intensity})` }}
                     title={`${DAY_LABELS[day]} ${hour}h — ${value.toLocaleString("fr-FR")} transactions`}
                   />
                 );
@@ -92,7 +92,7 @@ export function HourlyHeatmap({ rows, compact = false }: HourlyHeatmapProps) {
         <span
           aria-hidden="true"
           className="h-2 w-16 rounded-full"
-          style={{ background: "linear-gradient(90deg, rgba(12,92,76,0.10), rgba(12,92,76,0.95))" }}
+          style={{ background: "linear-gradient(90deg, rgba(36,87,197,0.10), rgba(36,87,197,0.95))" }}
         />
         <span>Fort</span>
       </div>

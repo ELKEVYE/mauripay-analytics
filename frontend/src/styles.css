@@ -7,14 +7,14 @@
    Tokens mirror tailwind.config.ts. Five hues, one elevation, hairline rules.
 --------------------------------------------------------------------------- */
 :root {
-  --canvas: #f5f7f6;
+  --canvas: #F3F6FB;
   --surface: #ffffff;
-  --hairline: #e4e7e5;
-  --ink: #16211d;
-  --ink-muted: #5c6b65;
-  --anchor: #0c5c4c;
-  --anchor-weak: #eaf1ee;
-  --alert: #b42318;
+  --hairline: #DFE6F0;
+  --ink: #14243B;
+  --ink-muted: #52647C;
+  --anchor: #2457C5;
+  --anchor-weak: #EBF1FF;
+  --alert: #B42332;
 }
 
 html {
@@ -59,8 +59,8 @@ body {
   border-radius: 12px;
   background: var(--surface);
   box-shadow:
-    0 1px 2px rgba(20, 33, 29, 0.04),
-    0 1px 3px rgba(20, 33, 29, 0.06);
+    0 1px 2px rgba(20, 36, 59, 0.04),
+    0 1px 3px rgba(20, 36, 59, 0.06);
   transition:
     box-shadow 140ms ease,
     border-color 140ms ease,
@@ -68,10 +68,10 @@ body {
 }
 
 .dashboard-card:hover {
-  border-color: rgba(12, 92, 76, 0.28);
+  border-color: rgba(36, 87, 197, 0.28);
   box-shadow:
-    0 2px 6px rgba(20, 33, 29, 0.06),
-    0 8px 20px -6px rgba(20, 33, 29, 0.1);
+    0 2px 6px rgba(20, 36, 59, 0.06),
+    0 8px 20px -6px rgba(20, 36, 59, 0.1);
 }
 
 .chart-card {
@@ -93,7 +93,7 @@ body {
    Scrollbars — neutral, thin
 --------------------------------------------------------------------------- */
 .soft-scrollbar {
-  scrollbar-color: rgba(92, 107, 101, 0.4) transparent;
+  scrollbar-color: rgba(82, 100, 124, 0.4) transparent;
   scrollbar-width: thin;
 }
 
@@ -103,7 +103,7 @@ body {
 }
 
 .soft-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(92, 107, 101, 0.32);
+  background: rgba(82, 100, 124, 0.32);
   border-radius: 999px;
 }
 
@@ -126,7 +126,7 @@ body {
 .leaflet-container {
   min-height: 360px;
   width: 100%;
-  background: #eef1f0;
+  background: #EDF2F8;
   font-family: inherit;
 }
 
@@ -139,7 +139,7 @@ body {
 .leaflet-tooltip {
   border: 1px solid var(--hairline);
   border-radius: 10px;
-  box-shadow: 0 16px 40px -16px rgba(20, 33, 29, 0.22);
+  box-shadow: 0 16px 40px -16px rgba(20, 36, 59, 0.22);
   color: var(--ink);
 }
 
@@ -161,7 +161,7 @@ body {
    Recharts — axis + grid defaults aligned to tokens
 --------------------------------------------------------------------------- */
 .recharts-cartesian-grid line {
-  stroke: #eaedec;
+  stroke: #E5EBF4;
 }
 
 .recharts-cartesian-axis-line,
@@ -176,7 +176,7 @@ body {
 .recharts-default-tooltip {
   border-radius: 10px !important;
   border: 1px solid var(--hairline) !important;
-  box-shadow: 0 16px 40px -16px rgba(20, 33, 29, 0.22) !important;
+  box-shadow: 0 16px 40px -16px rgba(20, 36, 59, 0.22) !important;
 }
 
 /* ---------------------------------------------------------------------------

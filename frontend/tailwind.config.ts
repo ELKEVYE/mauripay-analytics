@@ -5,37 +5,36 @@ import type { Config } from "tailwindcss";
  *
  * Five hues only:
  *   - a neutral off-white ground + white surfaces + hairline borders
- *   - `anchor`  : deep institutional green (Mauritanian financial identity)
- *   - `accent`  : muted Mauritanian gold — secondary chart series / marks only
- *   - `alert`   : one signal red, reserved exclusively for detected anomalies / fraud
+ *   - `anchor`  : confident blue for primary actions and navigation
+ *   - `accent`  : deep cyan — secondary chart series / marks only
+ *   - `alert`   : one signal red, reserved for anomalies, fraud, and service errors
  *
- * If `alert` shows up anywhere that is not a detected anomaly, it is a bug.
  */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}", "./tests/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        canvas: "#F5F7F6",
+        canvas: "#F3F6FB",
         surface: "#FFFFFF",
-        hairline: "#E4E7E5",
+        hairline: "#DFE6F0",
         ink: {
-          DEFAULT: "#16211D",
-          muted: "#5C6B65",
-          faint: "#8A9A93",
+          DEFAULT: "#14243B",
+          muted: "#52647C",
+          faint: "#718198",
         },
         anchor: {
-          DEFAULT: "#0C5C4C",
-          strong: "#0A4A3D",
-          weak: "#EAF1EE",
+          DEFAULT: "#2457C5",
+          strong: "#1C4196",
+          weak: "#EBF1FF",
         },
         accent: {
-          DEFAULT: "#A67C3D",
-          ink: "#7A5A28",
+          DEFAULT: "#0E7490",
+          ink: "#155E75",
         },
         alert: {
-          DEFAULT: "#B42318",
-          weak: "#FBEAE8",
+          DEFAULT: "#B42332",
+          weak: "#FFF0F1",
         },
       },
       fontFamily: {
@@ -43,9 +42,9 @@ export default {
         mono: ['"IBM Plex Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       boxShadow: {
-        card: "0 1px 2px rgba(20, 33, 29, 0.04), 0 1px 3px rgba(20, 33, 29, 0.06)",
-        "card-hover": "0 2px 6px rgba(20, 33, 29, 0.06), 0 8px 20px -6px rgba(20, 33, 29, 0.10)",
-        pop: "0 16px 40px -16px rgba(20, 33, 29, 0.22)",
+        card: "0 1px 2px rgba(20, 36, 59, 0.04), 0 1px 3px rgba(20, 36, 59, 0.06)",
+        "card-hover": "0 2px 6px rgba(20, 36, 59, 0.06), 0 8px 20px -6px rgba(20, 36, 59, 0.10)",
+        pop: "0 16px 40px -16px rgba(20, 36, 59, 0.22)",
       },
     },
   },
